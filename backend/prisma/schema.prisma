@@ -1,0 +1,60 @@
+// ============================================
+// Organization Model (Multi-Tenant)
+// ============================================
+model Organization {
+  id             Int       @id @default(autoincrement())
+  name           String    // "Prefeitura de São Paulo"
+  slug           String    @unique // "sp"
+  domain         String?   @unique // "sp.memoriaviva.com.br"
+  logo           String?   // URL to logo
+  primaryColor   String    @default("#4B0082") // Purple
+  secondaryColor String    @default("#D4AF37") // Gold
+  config         String?   // JSON: { aiInstructions, features, etc }
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  users          User[]
+  memories       Memory[]
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  email          String       @unique
+  password       String
+  role           String       @default("user") // "admin", "editor", "user"
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  memories       Memory[]
+}
+
+model Memory {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  content        String
+  eventDate      DateTime?
+  location       String?
+  category       String?
+  tags           String?      // JSON array of tags
+  mediaUrl       String?
+  aiGenerated    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}

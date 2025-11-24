@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-gray-50 text-gray-900 font-sans antialiased;
+        background-image: radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.08) 0%, transparent 20%),
+            radial-gradient(circle at 90% 80%, rgba(75, 0, 130, 0.08) 0%, transparent 20%);
+        background-attachment: fixed;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-serif;
+    }
+}
+
+@layer components {
+    .glass {
+        @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-lg;
+    }
+
+    .glass-dark {
+        @apply bg-gray-900/80 backdrop-blur-lg border border-white/10 shadow-xl text-white;
+    }
+
+    .btn-primary {
+        @apply bg-gradient-to-r from-purple-600 to-indigo-900 text-white px-6 py-2 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium;
+    }
+}
