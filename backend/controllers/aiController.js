@@ -22,7 +22,7 @@ exports.processMemoryInput = async (req, res) => {
             });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
         // Get organization-specific AI instructions
         let organizationInstructions = '';
@@ -52,12 +52,15 @@ exports.processMemoryInput = async (req, res) => {
             ${textInput ? `Contexto adicional do usuário: "${textInput}"` : ''}
             ${organizationInstructions}
             
+            Se houver uma imagem, descreva detalhadamente os elementos visuais, roupas, cenário e emoções.
+            Use essas informações visuais para gerar tags precisas.
+
             Retorne APENAS um objeto JSON com os seguintes campos:
             - title: Um título curto e descritivo.
-            - description: Uma descrição detalhada do que é visto na imagem ou ouvido no áudio, combinada com o contexto do usuário.
+            - description: Uma descrição detalhada e narrativa do que é visto na imagem ou ouvido no áudio, combinada com o contexto do usuário.
             - date: A data mencionada ou estimada (YYYY-MM-DD). Use a data de hoje se não for possível estimar.
             - location: O local mencionado ou identificado visualmente (ou null).
-            - tags: Uma lista de 3 a 5 tags relevantes.
+            - tags: Uma lista de 5 a 8 tags relevantes (incluindo elementos visuais detectados).
         `);
 
         // Add media if present
@@ -82,5 +85,43 @@ exports.processMemoryInput = async (req, res) => {
     } catch (error) {
         console.error('AI Processing Error:', error);
         res.status(500).json({ message: 'Error processing content', error: error.message });
+    }
+};
+
+exports.chatWithAgent = async (req, res) => {
+    try {
+        const { message, agentId } = req.body;
+
+        // Check if key is missing or is the placeholder
+        if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
+            return res.json({
+                response: "Olá! Sou o Roberto. Parece que estou sem minha chave de API hoje, mas adoraria te vender um plano Enterprise assim que eu estiver online!",
+                audioUrl: null // Future: Generate audio file
+            });
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const chat = model.startChat({
+            history: [
+                {
+                    role: "user",
+                    parts: [{ text: "System Prompt: Você é o Roberto, um vendedor sênior da plataforma Memória Cultural Viva. Seu objetivo é vender o plano Enterprise para prefeituras e escolas. Você é carismático, persuasivo e usa gírias corporativas leves. Fale de forma curta e direta, como numa chamada telefônica. Nunca saia do personagem." }],
+                },
+                {
+                    role: "model",
+                    parts: [{ text: "Alô? Aqui é o Roberto da Memória Viva! Tudo bom? Vi que você tá explorando nossa plataforma. Já pensou em levar essa tecnologia pra todas as escolas da sua rede?" }],
+                },
+            ],
+        });
+
+        const result = await chat.sendMessage(message);
+        const response = await result.response;
+        const text = response.text();
+
+        res.json({ response: text });
+
+    } catch (error) {
+        console.error('Agent Chat Error:', error);
+        res.status(500).json({ message: 'Error chatting with agent', error: error.message });
     }
 };

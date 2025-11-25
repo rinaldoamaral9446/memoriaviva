@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import MemoriesPage from './pages/MemoriesPage';
+import AgentMarketplace from './pages/AgentMarketplace';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -31,6 +32,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MemoriesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="marketplace"
+                element={
+                  <ProtectedRoute>
+                    <AgentMarketplace />
                   </ProtectedRoute>
                 }
               />

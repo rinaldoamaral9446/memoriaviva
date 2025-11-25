@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, Check, Image as ImageIcon, Mic, X, MapPin, Lightbulb } from 'lucide-react';
+import { Sparkles, Loader2, Check, Image as ImageIcon, Mic, MicOff, X, MapPin, Lightbulb } from 'lucide-react';
 import { useOrganization } from '../context/OrganizationContext';
 
 const AIMemoryCreator = ({ onMemoryCreated }) => {
@@ -9,6 +9,28 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
     const [filePreview, setFilePreview] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [structuredData, setStructuredData] = useState(null);
+
+    const [isListening, setIsListening] = useState(false);
+
+    const startListening = () => {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => setIsListening(true);
+            recognition.onend = () => setIsListening(false);
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                setTextInput(prev => (prev ? prev + ' ' : '') + transcript);
+            };
+            recognition.start();
+        } else {
+            alert('Seu navegador não suporta reconhecimento de voz.');
+        }
+    };
 
     // Get AI instructions from organization config
     const aiInstructions = organization?.config?.aiInstructions || 'A IA vai extrair título, descrição, data, local e tags da sua memória';
@@ -144,13 +166,25 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
 
                 {!structuredData ? (
                     <div className="space-y-6">
-                        <textarea
-                            className="w-full p-6 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-purple/50 focus:border-brand-purple transition-all resize-none bg-white/50 backdrop-blur-sm text-lg placeholder-gray-400 shadow-inner"
-                            rows="4"
-                            placeholder="Conte sua história aqui... (ex: 'O carnaval de Olinda em 2015 foi incrível...')"
-                            value={textInput}
-                            onChange={(e) => setTextInput(e.target.value)}
-                        />
+                        <div className="relative">
+                            <textarea
+                                className="w-full p-6 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-purple/50 focus:border-brand-purple transition-all resize-none bg-white/50 backdrop-blur-sm text-lg placeholder-gray-400 shadow-inner pr-12"
+                                rows="4"
+                                placeholder="Conte sua história aqui... (ex: 'O carnaval de Olinda em 2015 foi incrível...')"
+                                value={textInput}
+                                onChange={(e) => setTextInput(e.target.value)}
+                            />
+                            <button
+                                onClick={startListening}
+                                className={`absolute top-4 right-4 p-2 rounded-full transition-all ${isListening
+                                    ? 'bg-red-500 text-white animate-pulse'
+                                    : 'bg-gray-100 text-gray-500 hover:bg-brand-purple hover:text-white'
+                                    }`}
+                                title="Falar memória"
+                            >
+                                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                            </button>
+                        </div>
 
                         {/* File Upload Area */}
                         <div className="flex items-center gap-4">
