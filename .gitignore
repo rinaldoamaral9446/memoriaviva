@@ -54,3 +54,7 @@ backend/uploads/
 .cache
 temp/
 tmp/
+
+# Deployment guides with sensitive info
+RENDER_DEPLOY.md
+SECURITY_FIX.md
