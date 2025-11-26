@@ -7,9 +7,49 @@ import { API_ENDPOINTS } from '../config/api';
 
 const AIMemoryCreator = ({ onMemoryCreated }) => {
     const { organization, branding } = useOrganization();
-    // ... (rest of state)
+    const [textInput, setTextInput] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [filePreview, setFilePreview] = useState(null);
+    const [audioBlob, setAudioBlob] = useState(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [structuredData, setStructuredData] = useState(null);
+    const [isListening, setIsListening] = useState(false);
 
-    // ... (rest of functions)
+    const startListening = () => {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => setIsListening(true);
+            recognition.onend = () => setIsListening(false);
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                setTextInput(prev => (prev ? prev + ' ' : '') + transcript);
+            };
+            recognition.start();
+        } else {
+            alert('Seu navegador não suporta reconhecimento de voz.');
+        }
+    };
+
+    // Get AI instructions from organization config
+    const aiInstructions = organization?.config?.aiInstructions || 'A IA vai extrair título, descrição, data, local e tags da sua memória';
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+            // Create preview URL
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFilePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleAnalyze = async () => {
         if (!textInput.trim() && !selectedFile && !audioBlob) return;

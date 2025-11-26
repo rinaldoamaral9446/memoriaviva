@@ -5,6 +5,7 @@ import TimelineView from '../components/TimelineView';
 import EditMemoryModal from '../components/EditMemoryModal';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import SearchBar from '../components/SearchBar';
+import { API_ENDPOINTS } from '../config/api';
 import { LayoutGrid, List, Loader2, Edit2, Trash2 } from 'lucide-react';
 
 const MemoriesPage = () => {
@@ -29,7 +30,7 @@ const MemoriesPage = () => {
     const fetchMemories = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5001/api/memories/my', {
+            const response = await fetch(API_ENDPOINTS.memories.my, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -58,7 +59,7 @@ const MemoriesPage = () => {
         try {
             const token = localStorage.getItem('token');
             const params = new URLSearchParams(filters).toString();
-            const response = await fetch(`http://localhost:5001/api/memories/search?${params}`, {
+            const response = await fetch(`${API_ENDPOINTS.memories.search}?${params}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -83,7 +84,7 @@ const MemoriesPage = () => {
         setIsDeleting(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5001/api/memories/${deletingMemory.id}`, {
+            const response = await fetch(API_ENDPOINTS.memories.delete(deletingMemory.id), {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
