@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import { useOrganization } from './OrganizationContext';
+import { API_URL } from '../config/api';
 
 const AuthContext = createContext();
 
@@ -13,7 +14,7 @@ export const AuthProvider = ({ children }) => {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    const response = await fetch('http://localhost:5001/api/users/profile', {
+                    const response = await fetch(`${API_URL}/api/users/profile`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     if (response.ok) {

@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, Mail, Lock, User, Building2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+import { API_URL } from '../config/api';
+
 const Register = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -25,7 +27,7 @@ const Register = () => {
 
     const fetchOrganizations = async () => {
         try {
-            const response = await fetch('http://localhost:5001/api/organizations');
+            const response = await fetch(`${API_URL}/api/organizations`);
             const data = await response.json();
             if (response.ok) {
                 setOrganizations(data.organizations || []);
@@ -78,7 +80,7 @@ const Register = () => {
 
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5001/api/auth/register', {
+            const response = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
