@@ -10,6 +10,7 @@ import AgentMarketplace from './pages/AgentMarketplace';
 import AdminPage from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import EducatorArea from './pages/EducatorArea';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 function App() {
   return (
@@ -58,6 +59,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <EducatorArea />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="analytics"
+                element={
+                  <ProtectedRoute>
+                    <AnalyticsPage />
                   </ProtectedRoute>
                 }
               />

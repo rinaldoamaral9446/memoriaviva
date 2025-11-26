@@ -11,6 +11,7 @@ const memoryRoutes = require('./routes/memoryRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 // Middleware
 const corsOptions = {
@@ -30,6 +31,7 @@ app.use('/api/memories', memoryRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
