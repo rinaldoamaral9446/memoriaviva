@@ -12,6 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import EducatorArea from './pages/EducatorArea';
 import AnalyticsPage from './pages/AnalyticsPage';
 import KidsPage from './pages/KidsPage';
+import StudioPage from './pages/StudioPage';
 
 function App() {
   return (
@@ -76,6 +77,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <KidsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="studio"
+                element={
+                  <ProtectedRoute>
+                    <StudioPage />
                   </ProtectedRoute>
                 }
               />
