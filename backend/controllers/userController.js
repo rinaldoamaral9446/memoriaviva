@@ -43,3 +43,113 @@ exports.getProfile = async (req, res) => {
         res.status(500).json({ message: 'Error fetching profile', error: error.message });
     }
 };
+
+// Get all users for the organization (Admin only)
+exports.getOrganizationUsers = async (req, res) => {
+    try {
+        const users = await prisma.user.findMany({
+            where: { organizationId: req.user.organizationId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                createdAt: true,
+                _count: {
+                    select: { memories: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching users', error: error.message });
+    }
+};
+
+// Create a new user (Admin only)
+exports.createUser = async (req, res) => {
+    try {
+        const { name, email, password, role } = req.body;
+        const organizationId = req.user.organizationId;
+
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: role || 'user',
+                organizationId
+            }
+        });
+
+        res.status(201).json({ message: 'User created successfully', userId: user.id });
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating user', error: error.message });
+    }
+};
+
+// Update user role (Admin only)
+exports.updateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+        const organizationId = req.user.organizationId;
+
+        // Verify user belongs to organization
+        const user = await prisma.user.findFirst({
+            where: { id: parseInt(id), organizationId }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        await prisma.user.update({
+            where: { id: parseInt(id) },
+            data: { role }
+        });
+
+        res.json({ message: 'User updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating user', error: error.message });
+    }
+};
+
+// Delete user (Admin only)
+exports.deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const organizationId = req.user.organizationId;
+
+        // Prevent self-deletion
+        if (parseInt(id) === req.user.userId) {
+            return res.status(400).json({ message: 'Cannot delete yourself' });
+        }
+
+        // Verify user belongs to organization
+        const user = await prisma.user.findFirst({
+            where: { id: parseInt(id), organizationId }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        await prisma.user.delete({
+            where: { id: parseInt(id) }
+        });
+
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting user', error: error.message });
+    }
+};

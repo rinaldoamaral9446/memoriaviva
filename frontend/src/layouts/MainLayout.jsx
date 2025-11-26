@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../context/OrganizationContext';
-import { LogOut, User, Home, BookOpen, Menu, X, Building2, GraduationCap, BarChart3, Gamepad2, Film } from 'lucide-react';
+import { LogOut, User, Home, BookOpen, Menu, X, Building2, GraduationCap, BarChart3, Gamepad2, Film, Shield, Users } from 'lucide-react';
 
 const MainLayout = () => {
     const { user, logout } = useAuth();
@@ -99,6 +99,29 @@ const MainLayout = () => {
                                         <Film className="w-4 h-4" />
                                         Estúdio
                                     </Link>
+
+                                    {/* Management Links */}
+                                    {user?.role === 'admin' && (
+                                        <Link
+                                            to="/admin/org"
+                                            className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/org') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                        >
+                                            <Users className="w-4 h-4" />
+                                            Equipe
+                                        </Link>
+                                    )}
+
+                                    {/* Super Admin Link (assuming role 'super_admin' or specific email for now) */}
+                                    {user?.email === 'admin@demo.com' && (
+                                        <Link
+                                            to="/admin/super"
+                                            className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/super') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                        >
+                                            <Shield className="w-4 h-4" />
+                                            Super Admin
+                                        </Link>
+                                    )}
+
                                     <Link
                                         to="/dashboard"
                                         className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/dashboard') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}

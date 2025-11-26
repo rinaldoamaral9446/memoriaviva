@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 
 exports.createMemory = async (req, res) => {
     try {
-        const { title, description, date, location, imageUrl, documentUrl, category, tags } = req.body;
+        const { title, description, date, location, imageUrl, documentUrl, category, tags, isPublic } = req.body;
 
         // Validate required fields
         if (!title || !description) {
@@ -23,7 +23,8 @@ exports.createMemory = async (req, res) => {
                 documentUrl: req.body.documentUrl || null,
                 userId: req.user.userId,
                 organizationId: req.user.organizationId, // From JWT token
-                aiGenerated: true // Since it comes from AI
+                aiGenerated: true, // Since it comes from AI
+                isPublic: isPublic || false
             },
         });
         res.status(201).json(memory);
@@ -36,7 +37,11 @@ exports.createMemory = async (req, res) => {
 exports.getAllMemories = async (req, res) => {
     try {
         const memories = await prisma.memory.findMany({
-            include: { user: { select: { name: true } } },
+            where: { isPublic: true },
+            include: {
+                user: { select: { name: true } },
+                organization: { select: { name: true, logo: true, slug: true } }
+            },
             orderBy: { date: 'desc' },
         });
         res.json(memories);
@@ -158,5 +163,31 @@ exports.searchMemories = async (req, res) => {
     } catch (error) {
         console.error('Search memories error:', error);
         res.status(500).json({ message: 'Error searching memories', error: error.message });
+    }
+};
+
+exports.togglePublicStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isPublic } = req.body;
+
+        const memory = await prisma.memory.findUnique({ where: { id: parseInt(id) } });
+
+        if (!memory) {
+            return res.status(404).json({ message: 'Memory not found' });
+        }
+
+        if (memory.organizationId !== req.user.organizationId) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const updated = await prisma.memory.update({
+            where: { id: parseInt(id) },
+            data: { isPublic }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating status', error: error.message });
     }
 };

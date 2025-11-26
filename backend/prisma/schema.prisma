@@ -68,6 +68,8 @@ model Memory {
   mediaUrl       String?
   documentUrl    String?      // URL to PDF/Doc/Txt file
   audioUrl       String?      // URL to audio recording if available
+  isPublic       Boolean      @default(false)
+  curationScore  Int          @default(0)
   aiGenerated    Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

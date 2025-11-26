@@ -13,6 +13,9 @@ import EducatorArea from './pages/EducatorArea';
 import AnalyticsPage from './pages/AnalyticsPage';
 import KidsPage from './pages/KidsPage';
 import StudioPage from './pages/StudioPage';
+import AdminDashboard from './pages/AdminDashboard';
+import OrgManagement from './pages/OrgManagement';
+import Home from './pages/Home';
 
 function App() {
   return (
@@ -20,10 +23,11 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<div className="text-gray-600">Bem-vindo ao Memória Cultural Viva!</div>} />
-              <Route path="login" element={<Login />} />
-              <Route path="register" element={<Register />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            <Route element={<MainLayout />}>
               <Route
                 path="dashboard"
                 element={
@@ -88,11 +92,27 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="admin/super"
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/org"
+                element={
+                  <ProtectedRoute>
+                    <OrgManagement />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
-    </OrganizationProvider>
+      </AuthProvider >
+    </OrganizationProvider >
   );
 }
 
