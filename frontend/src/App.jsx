@@ -11,6 +11,7 @@ import AdminPage from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import EducatorArea from './pages/EducatorArea';
 import AnalyticsPage from './pages/AnalyticsPage';
+import KidsPage from './pages/KidsPage';
 
 function App() {
   return (
@@ -67,6 +68,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AnalyticsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="kids"
+                element={
+                  <ProtectedRoute>
+                    <KidsPage />
                   </ProtectedRoute>
                 }
               />

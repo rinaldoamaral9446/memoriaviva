@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../context/OrganizationContext';
-import { LogOut, User, Home, BookOpen, Menu, X, Building2, GraduationCap, BarChart3 } from 'lucide-react';
+import { LogOut, User, Home, BookOpen, Menu, X, Building2, GraduationCap, BarChart3, Gamepad2 } from 'lucide-react';
 
 const MainLayout = () => {
     const { user, logout } = useAuth();
@@ -84,6 +84,13 @@ const MainLayout = () => {
                                     >
                                         <BarChart3 className="w-4 h-4" />
                                         Analytics
+                                    </Link>
+                                    <Link
+                                        to="/kids"
+                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/kids') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                    >
+                                        <Gamepad2 className="w-4 h-4" />
+                                        Kids
                                     </Link>
                                     <Link
                                         to="/dashboard"
