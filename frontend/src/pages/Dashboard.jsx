@@ -1,13 +1,22 @@
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import CuratorWidget from '../components/CuratorWidget';
 
 const Dashboard = () => {
     const { user } = useAuth();
 
     return (
-        <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Dashboard</h2>
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-                <p className="text-blue-700">
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-3xl font-serif font-bold text-gray-800 mb-2">
+                Olá, {user?.name}!
+            </h1>
+            <p className="text-gray-600 mb-8">Bem-vindo de volta ao seu acervo de memórias.</p>
+
+            {/* AI Curator Widget */}
+            <CuratorWidget />
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-8">
+                <p className="text-gray-700">
                     Bem-vindo de volta, <span className="font-bold">{user?.name}</span>!
                 </p>
             </div>

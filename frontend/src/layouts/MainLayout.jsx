@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../context/OrganizationContext';
-import { LogOut, User, Home, BookOpen, Menu, X, Building2 } from 'lucide-react';
+import { LogOut, User, Home, BookOpen, Menu, X, Building2, GraduationCap } from 'lucide-react';
 
 const MainLayout = () => {
     const { user, logout } = useAuth();
@@ -29,7 +29,7 @@ const MainLayout = () => {
                                 <div
                                     className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
                                     style={{
-                                        background: `linear-gradient(135deg, ${branding.primaryColor} 0%, ${branding.secondaryColor} 100%)`
+                                        background: `linear - gradient(135deg, ${branding.primaryColor} 0 %, ${branding.secondaryColor} 100 %)`
                                     }}
                                 >
                                     <span className="text-white font-serif font-bold text-xl">{branding.name.charAt(0)}</span>
@@ -56,7 +56,7 @@ const MainLayout = () => {
                         <div className="hidden md:flex items-center space-x-8">
                             <Link
                                 to="/"
-                                className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
                             >
                                 <Home className="w-4 h-4" />
                                 Início
@@ -66,18 +66,34 @@ const MainLayout = () => {
                                 <>
                                     <Link
                                         to="/memories"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/memories') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                        className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/memories') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
                                     >
                                         <BookOpen className="w-4 h-4" />
                                         Minhas Memórias
                                     </Link>
                                     <Link
+                                        to="/educator"
+                                        className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/educator') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
+                                    >
+                                        <GraduationCap className="w-4 h-4" />
+                                        Educador
+                                    </Link>
+                                    <Link
                                         to="/dashboard"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/dashboard') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                        className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/dashboard') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
                                     >
                                         <User className="w-4 h-4" />
                                         Perfil
                                     </Link>
+                                    {user.role === 'admin' && (
+                                        <Link
+                                            to="/admin"
+                                            className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/admin') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
+                                        >
+                                            <Building2 className="w-4 h-4" />
+                                            Admin
+                                        </Link>
+                                    )}
                                     <button
                                         onClick={logout}
                                         className="flex items-center gap-2 px-5 py-2 rounded-full border border-brand-purple/20 text-brand-purple hover:bg-brand-purple hover:text-white transition-all duration-300 text-sm font-medium"
@@ -129,12 +145,28 @@ const MainLayout = () => {
                                         Minhas Memórias
                                     </Link>
                                     <Link
+                                        to="/educator"
+                                        className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Educador
+                                    </Link>
+                                    <Link
                                         to="/dashboard"
                                         className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         Perfil
                                     </Link>
+                                    {user.role === 'admin' && (
+                                        <Link
+                                            to="/admin"
+                                            className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            Admin
+                                        </Link>
+                                    )}
                                     <button
                                         onClick={() => { logout(); setIsMenuOpen(false); }}
                                         className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 transition-colors"

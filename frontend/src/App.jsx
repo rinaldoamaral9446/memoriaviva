@@ -7,7 +7,9 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import MemoriesPage from './pages/MemoriesPage';
 import AgentMarketplace from './pages/AgentMarketplace';
+import AdminPage from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import EducatorArea from './pages/EducatorArea';
 
 function App() {
   return (
@@ -40,6 +42,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AgentMarketplace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="educator"
+                element={
+                  <ProtectedRoute>
+                    <EducatorArea />
                   </ProtectedRoute>
                 }
               />

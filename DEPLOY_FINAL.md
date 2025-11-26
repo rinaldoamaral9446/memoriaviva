@@ -1,51 +1,54 @@
-# 🚀 Deploy Guide - Railway & Vercel
+# 🚀 Deploy Guide - Render & Vercel
 
 **Repository:** https://github.com/rinaldoamaral9446/memoriaviva
 
 ---
 
-## Part 1: Deploy Backend (Railway)
+## Part 1: Deploy Backend (Render)
 
-### Step 1: Create railway Project
-1. **Go to:** https://railway.app
-2. Click **"New Project"**
-3. Select **"Deploy from GitHub repo"**
-4. Authorize GitHub if needed
-5. Select **"rinaldoamaral9446/memoriaviva"**
+### Step 1: Create Web Service
+1. **Go to:** https://render.com
+2. Click **"New +"** → **"Web Service"**
+3. Connect your repo: **rinaldoamaral9446/memoriaviva**
 
-### Step 2: Configure Root Directory
-⚠️ **IMPORTANT:** Railway needs to know where the backend is!
-1. Click on the deployed service
-2. Go to **"Settings"**
-3. Scroll to **"Service"** section
-4. Set **"Root Directory"**: `backend`
-5. Set **"Build Command"**: `npm install && npx prisma generate`
-6. Set **"Start Command"**: `npm start`
-
-### Step 3: Add PostgreSQL Database
-1. In your project dashboard, click **"+ New"**
-2. Select **"Database"** → **"Add PostgreSQL"**
-3. Railway automatically creates `DATABASE_URL` variable
-
-### Step 4: Set Environment Variables
-Click on your backend service → **"Variables"** tab → Add these:
-
+### Step 2: Configure Service
+Fill in the fields:
 ```
-JWT_SECRET=MemViva2025SecretKeyUltraSecure321
-GEMINI_API_KEY=AIzaSyAGXxB_S39lY1I5GH2cEmeHN9gJqRNWqgM
+Name: memoriaviva-backend
+Region: Oregon (US West) - or closest to you
+Branch: main
+Root Directory: backend
+Runtime: Node
+Build Command: npm install && npx prisma generate
+Start Command: npm start
+```
+
+### Step 3: Environment Variables
+Click **"Advanced"** or **"Environment"** tab and add:
+```
+GEMINI_API_KEY=your-gemini-api-key
+JWT_SECRET=your-secure-jwt-secret
 NODE_ENV=production
-FRONTEND_URL=https://placeholder.vercel.app
 ```
-*(We'll update `FRONTEND_URL` after Vercel deploy)*
+*(Do not add DATABASE_URL yet)*
 
-### Step 5: Deploy
--   Railway will auto-deploy
--   Wait for build to complete (~2-3 min)
--   Copy your Railway URL: **https://xxxxx.up.railway.app**
+### Step 4: Create Database (PostgreSQL)
+1. Dashboard → **"New +"** → **"PostgreSQL"**
+2. Name: `memoriaviva-db`
+3. Plan: **Free**
+4. Click **"Create Database"**
+5. Copy **"Internal Database URL"**
 
-### Step 6: Test Backend
--   Visit: `https://your-railway-url.up.railway.app/api/health`
--   Should return: `{"status":"ok","message":"Server is running"}`
+### Step 5: Connect Database
+1. Go back to **memoriaviva-backend** service
+2. Environment Variables → Add:
+   ```
+   DATABASE_URL=<paste-internal-database-url>
+   ```
+3. Save Changes (Render will auto-redeploy)
+
+> [!WARNING]
+> **Ephemeral Storage**: Render's free tier disk is ephemeral. Images uploaded locally will be lost when the server restarts or redeploys. For production, use AWS S3 or Cloudinary.
 
 ---
 
@@ -53,61 +56,50 @@ FRONTEND_URL=https://placeholder.vercel.app
 
 ### Step 1: Import Project
 1. **Go to:** https://vercel.com
-2. Click **"Add New..."** → **"Project"**
+2. **"Add New..."** → **"Project"**
 3. Select **"rinaldoamaral9446/memoriaviva"**
 
-### Step 2: Configure Framework
--   **Framework Preset:** Vite
--   **Root Directory:** `frontend`
--   **Build Command:** `npm run build`
--   **Output Directory:** `dist`
+### Step 2: Configure
+- **Framework Preset:** Vite
+- **Root Directory:** `frontend`
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
 
-### Step 3: Add Environment Variable
-Click **"Environment Variables"**:
+### Step 3: Environment Variable
+Add variable:
 ```
 Name: VITE_API_URL
-Value: https://YOUR-RAILWAY-URL.up.railway.app
+Value: https://memoriaviva-backend.onrender.com
 ```
-*(Replace with your actual Railway URL from Step 5 above)*
+*(Replace with your actual Render backend URL)*
 
 ### Step 4: Deploy
--   Click **"Deploy"**
--   Wait ~1-2 minutes
--   Copy your Vercel URL: **https://memoriaviva.vercel.app**
+- Click **"Deploy"**
 
 ---
 
 ## Part 3: Final Configuration
 
-### Update Railway CORS
-1. Go back to **Railway**
-2. Click on backend service → **"Variables"**
-3. Update `FRONTEND_URL` to your Vercel URL:
+### Update Backend CORS
+1. Go to Render → **memoriaviva-backend** → **Environment**
+2. Add/Update:
    ```
-   FRONTEND_URL=https://memoriaviva.vercel.app
+   FRONTEND_URL=https://your-app.vercel.app
    ```
-4. Service will auto-redeploy
+3. Save (auto-redeploy)
 
 ---
 
 ## ✅ Verification Checklist
 
-- [ ] Backend health: `https://your-railway.up.railway.app/api/health`
+- [ ] Backend health: `https://your-backend.onrender.com/api/health`
 - [ ] Frontend loads at Vercel URL
 - [ ] Can create account and login
 - [ ] Can create a memory
 - [ ] Voice-to-Memory works
-- [ ] Agent Marketplace loads
-- [ ] Roberto speaks in production
 
 ---
 
 ## 🎯 Quick Links
--   **GitHub:** https://github.com/rinaldoamaral9446/memoriaviva
--   **Railway:** https://railway.app
--   **Vercel:** https://vercel.com
-
----
-
-**Total Time:** ~15-20 minutes
-**Cost:** $0/month (free tier)
+- **Render:** https://render.com
+- **Vercel:** https://vercel.com

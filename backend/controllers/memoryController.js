@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 
 exports.createMemory = async (req, res) => {
     try {
-        const { title, description, date, location, imageUrl, category, tags } = req.body;
+        const { title, description, date, location, imageUrl, documentUrl, category, tags } = req.body;
 
         // Validate required fields
         if (!title || !description) {
@@ -20,6 +20,7 @@ exports.createMemory = async (req, res) => {
                 category,
                 tags: tags ? JSON.stringify(tags) : null,
                 mediaUrl: imageUrl || null,
+                documentUrl: req.body.documentUrl || null,
                 userId: req.user.userId,
                 organizationId: req.user.organizationId, // From JWT token
                 aiGenerated: true // Since it comes from AI

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_URL } from '../config/api';
 
 const OrganizationContext = createContext();
 
@@ -41,8 +42,42 @@ export const OrganizationProvider = ({ children }) => {
         }
     }, [organization]);
 
+    const updateOrganization = async (id, data) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/organizations/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                // Update local state with the updated organization
+                // Ensure config is parsed if it comes back as string
+                const updatedOrg = result.organization;
+                if (updatedOrg.config && typeof updatedOrg.config === 'string') {
+                    try {
+                        updatedOrg.config = JSON.parse(updatedOrg.config);
+                    } catch (e) {
+                        // Keep as is or handle error
+                    }
+                }
+                setOrganization(updatedOrg);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error updating organization:', error);
+            return false;
+        }
+    };
+
     return (
-        <OrganizationContext.Provider value={{ organization, setOrganization, branding }}>
+        <OrganizationContext.Provider value={{ organization, setOrganization, branding, updateOrganization }}>
             {children}
         </OrganizationContext.Provider>
     );

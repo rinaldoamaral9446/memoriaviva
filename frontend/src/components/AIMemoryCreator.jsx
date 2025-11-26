@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, Check, Image as ImageIcon, Mic, MicOff, X, MapPin, Lightbulb } from 'lucide-react';
+import { Sparkles, Loader2, Check, Image as ImageIcon, Mic, MicOff, X, MapPin, Lightbulb, FileText } from 'lucide-react';
 import { useOrganization } from '../context/OrganizationContext';
+import AudioRecorder from './AudioRecorder';
 
 const AIMemoryCreator = ({ onMemoryCreated }) => {
     const { organization, branding } = useOrganization();
     const [textInput, setTextInput] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [filePreview, setFilePreview] = useState(null);
+    const [audioBlob, setAudioBlob] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [structuredData, setStructuredData] = useState(null);
 
@@ -49,7 +51,16 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
     };
 
     const handleAnalyze = async () => {
-        if (!textInput.trim() && !selectedFile) return;
+        if (!textInput.trim() && !selectedFile && !audioBlob) return;
+
+        console.log('🔍 Starting analyze...', {
+            hasText: !!textInput,
+            hasFile: !!selectedFile,
+            hasAudio: !!audioBlob,
+            fileName: selectedFile?.name,
+            fileType: selectedFile?.type,
+            fileSize: selectedFile?.size
+        });
 
         setIsAnalyzing(true);
         try {
@@ -57,9 +68,14 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
             const formData = new FormData();
             formData.append('textInput', textInput);
             if (selectedFile) {
+                console.log('📎 Appending selectedFile to FormData');
                 formData.append('media', selectedFile);
+            } else if (audioBlob) {
+                console.log('🎙️ Appending audioBlob to FormData');
+                formData.append('media', audioBlob, 'recording.webm');
             }
 
+            console.log('📡 Sending request to /api/ai/process...');
             const response = await fetch('http://localhost:5001/api/ai/process', {
                 method: 'POST',
                 headers: {
@@ -69,16 +85,19 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
                 body: formData
             });
 
+            console.log('📥 Response received:', response.status, response.statusText);
             const data = await response.json();
+            console.log('📦 Response data:', data);
+
             if (response.ok) {
                 setStructuredData(data);
             } else {
                 console.error('AI Error:', data);
-                alert('Erro ao processar com IA: ' + data.message);
+                alert('Erro ao processar com IA: ' + (data.message || 'Unknown error'));
             }
         } catch (error) {
             console.error('Request Error:', error);
-            alert('Erro na requisição.');
+            alert('Erro na requisição: ' + error.message);
         } finally {
             setIsAnalyzing(false);
         }
@@ -101,7 +120,8 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
                     date: structuredData.date,
                     location: structuredData.location,
                     isPublic: true,
-                    imageUrl: structuredData.imageUrl || 'https://via.placeholder.com/400x200?text=Memória+Cultural' // Placeholder for now
+                    imageUrl: structuredData.imageUrl || 'https://via.placeholder.com/400x200?text=Memória+Cultural',
+                    documentUrl: structuredData.documentUrl
                 })
             });
 
@@ -112,6 +132,7 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
                 setTextInput('');
                 setSelectedFile(null);
                 setFilePreview(null);
+                setAudioBlob(null);
                 setStructuredData(null);
             } else {
                 alert('Erro ao salvar memória.');
@@ -186,20 +207,29 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
                             </button>
                         </div>
 
+                        {/* Audio Recording */}
+                        <div className="border-t border-gray-200 pt-6">
+                            <AudioRecorder
+                                onAudioReady={(blob) => setAudioBlob(blob)}
+                                onClear={() => setAudioBlob(null)}
+                            />
+                        </div>
+
                         {/* File Upload Area */}
                         <div className="flex items-center gap-4">
                             <label className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-white hover:bg-gray-50 text-gray-600 rounded-xl border border-gray-200 transition-all shadow-sm hover:shadow-md group">
                                 <ImageIcon className="w-5 h-5 group-hover:text-brand-purple transition-colors" />
-                                <span className="font-medium">Adicionar Foto/Áudio</span>
+                                <span className="font-medium">Adicionar Mídia/Doc</span>
                                 <input
                                     type="file"
                                     className="hidden"
-                                    accept="image/*,audio/*"
+                                    accept="image/*,audio/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                                     onChange={handleFileChange}
                                 />
                             </label>
                             {selectedFile && (
-                                <span className="text-sm text-brand-purple font-medium bg-brand-purple/5 px-3 py-1 rounded-full border border-brand-purple/10 truncate max-w-xs">
+                                <span className="text-sm text-brand-purple font-medium bg-brand-purple/5 px-3 py-1 rounded-full border border-brand-purple/10 truncate max-w-xs flex items-center gap-2">
+                                    {selectedFile.type.includes('image') ? <ImageIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                                     {selectedFile.name}
                                 </span>
                             )}
@@ -220,7 +250,7 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
 
                         <button
                             onClick={handleAnalyze}
-                            disabled={isAnalyzing || (!textInput && !selectedFile)}
+                            disabled={isAnalyzing || (!textInput && !selectedFile && !audioBlob)}
                             className="w-full py-4 bg-gradient-to-r from-brand-purple via-indigo-800 to-brand-purple bg-[length:200%_auto] hover:bg-right text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-brand-purple/30 transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
                         >
                             {isAnalyzing ? (

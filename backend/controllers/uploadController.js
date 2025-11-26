@@ -5,13 +5,10 @@ exports.uploadImage = async (req, res) => {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // Generate public URL
-        const orgId = req.user.organizationId;
-        const imageUrl = `/uploads/memories/${orgId}/${req.file.filename}`;
-
+        // Cloudinary returns the URL in req.file.path
         res.json({
             success: true,
-            imageUrl: imageUrl,
+            imageUrl: req.file.path,
             filename: req.file.filename,
             size: req.file.size
         });
