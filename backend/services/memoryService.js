@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 
 class MemoryService {
     async createMemory(data, user) {
-        const { title, description, date, location, imageUrl, documentUrl, category, tags, isPublic, eventId } = data;
+        const { title, description, date, location, imageUrl, documentUrl, category, tags, isPublic, eventId, status, metadata, thumbnailUrl } = data;
 
         return await prisma.memory.create({
             data: {
@@ -20,7 +20,10 @@ class MemoryService {
                 organizationId: user.organizationId,
                 aiGenerated: true,
                 isPublic: isPublic || false,
-                eventId: eventId ? parseInt(eventId) : null
+                eventId: eventId ? parseInt(eventId) : null,
+                status: status || "PENDING",
+                metadata: metadata ? JSON.stringify(metadata) : null,
+                thumbnailUrl: thumbnailUrl || null
             },
         });
     }

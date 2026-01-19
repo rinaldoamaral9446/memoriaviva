@@ -42,11 +42,13 @@ function getFundamentalPrompt(memoryContext, gradeLevel, subject, topic) {
         1. Identify specific BNCC Competencies and Skills (codes like EF15AR01) relevant to the Grade/Subject and the memory content.
         2. Design a creative, engaging activity where students interact with these memories.
         3. Structure the output as a JSON object.
-        4. IMPORTANT: ALL CONTENT MUST BE IN PORTUGUESE (PT-BR).
+        4. SUMMARY: Include a 'summary' field (max 500 chars) summarizing the memory/transcription, improving clarity for the teacher. Focus on cultural and educational value.
+        5. IMPORTANT: ALL CONTENT MUST BE IN PORTUGUESE (PT-BR).
 
         Output Format (JSON):
         {
             "title": "Título do Plano de Aula",
+            "summary": "Resumo calmo e educativo sobre a memória transcrita...",
             "bnccCodes": ["EF15AR01", "EF15AR24"],
             "objectives": ["Objetivo 1", "Objetivo 2"],
             "duration": "2 aulas (50 min cada)",
@@ -87,13 +89,17 @@ function getEarlyChildhoodPrompt(memoryContext, gradeLevel, topic) {
            - Todo plano deve incluir o uso de Miniaturas 3D do kit escolar.
            - Sugira: "Use a miniatura do Boi", "Use as formas geométricas para montar a fachada do Jaraguá", "Use os bonecos para representar o Reisado".
 
-        3. ESTRUTURA BNCC:
+        3. RESUMO (SUMMARY):
+           - Crie um campo 'summary' (max 500 chars) resumindo a vivência cultural relatada, destacando os elementos alagoanos. Use tom pedagógico.
+
+        4. ESTRUTURA BNCC:
            - Não use "Matérias". Use "Campos de Experiência".
            - Mapeie Códigos BNCC reais (Ex: EI03EO01, EI03TS02).
 
         FORMATO DE SAÍDA (JSON):
         {
             "title": "Título Lúdico do Plano",
+            "summary": "Nesta vivência, o narrador descreve o folclore...",
             "gradeLevel": "${gradeLevel}",
             "fieldsOfExperience": [
                 "O eu, o outro e o nós",
@@ -147,6 +153,7 @@ async function generateLessonPlan(memories, gradeLevel, subject, topic, userId, 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
+        console.log('RESPOSTA BRUTA DA IA:', text);
 
         // Clean up markdown
         const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();

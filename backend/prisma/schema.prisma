@@ -185,6 +185,14 @@ model Memory {
   isPublic       Boolean      @default(false)
   curationScore  Int          @default(0)
   aiGenerated    Boolean      @default(false)
+
+  // [NEW] Curadoria
+  status         String       @default("PENDING") // Enum: "PENDING", "APPROVED", "REJECTED"
+  
+  // [NEW] Metadados Técnicos
+  metadata       String?      // JSON: { duration, resolution, size, originalName }
+  thumbnailUrl   String?      // URL to thumbnail image
+
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   

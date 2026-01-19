@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
     },
     ai: {
         process: `${API_URL}/api/ai/process`,
+        base: `${API_URL}/api/ai`,
     },
     upload: {
         image: `${API_URL}/api/upload/image`,

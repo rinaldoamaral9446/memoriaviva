@@ -81,7 +81,7 @@ const VideoCreator = ({ memories }) => {
                             `}
                         >
                             <img
-                                src={memory.imageUrl || 'https://via.placeholder.com/50'}
+                                src={video.thumbnailUrl || 'https://placehold.co/320x180?text=Video+Sem+Capa'}
                                 alt={memory.title}
                                 className="w-12 h-12 rounded-lg object-cover"
                             />

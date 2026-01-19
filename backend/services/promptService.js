@@ -1,8 +1,10 @@
-exports.buildMemoryPrompt = (textInput, orgInstructions, guardrails) => {
+exports.buildMemoryPrompt = (textInput, orgInstructions, guardrails, culturalContext) => {
     let prompt = `
         Analise o seguinte conteúdo (texto e/ou mídia) de uma memória cultural e extraia informações estruturadas em formato JSON.
         ${textInput ? `Contexto adicional do usuário: "${textInput}"` : ''}
         
+        ${culturalContext ? `\nCONTEXTO CULTURAL E REGIONAL (MUITO IMPORTANTE):\n${culturalContext}\nUtilize este contexto para enriquecer a descrição e identificar gírias, locais ou costumes específicos da região.` : ''}
+
         ${orgInstructions ? `\nINSTRUÇÕES ESPECIAIS DA ORGANIZAÇÃO:\n${orgInstructions}` : ''}
         
         ${guardrails ? `\nGUARDRAILS (REGRAS DE SEGURANÇA E BLOQUEIO - IMPORTANTE):\n${guardrails}\nSe o conteúdo violar estas regras, retorne um JSON com title: "Conteúdo Bloqueado" e description: "Este conteúdo viola as diretrizes de segurança da organização."` : ''}
@@ -11,14 +13,18 @@ exports.buildMemoryPrompt = (textInput, orgInstructions, guardrails) => {
         Use essas informações visuais para gerar tags precisas.
 
         Retorne APENAS um objeto JSON válido.
-        IMPORTANTE: Todos os textos (title, description, tags, location) DEVEM estar estritamente em PORTUGUÊS DO BRASIL.
-        
+        DIRETRIZ DE PRIORIDADE (HIERARQUIA DE VERDADE):
+        1. [FATOS PRIMÁRIOS] Título do Vídeo e Descrição Oficial: A história DEVE ser sobre o que está escrito aqui (ex: se diz "Portugal", fale de Portugal).
+        2. [TOM E ESTILO] Contexto Cultural/Pedagógico: Use para dar a "voz" da organização, mas NÃO substitua os fatos primários.
+        3. [SÍNTESE] Se houver conflito (ex: Título diz "Gelo" e Contexto diz "Tropical"), o Título ganha.
+
         Campos do JSON:
-        - title: Um título curto e descritivo em Português.
-        - description: Uma descrição detalhada e narrativa em Português do que é visto na imagem ou ouvido no áudio, combinada com o contexto do usuário.
-        - date: A data mencionada ou estimada (YYYY-MM-DD). Use a data de hoje se não for possível estimar.
-        - location: O local mencionado ou identificado visualmente (ou null).
-        - tags: Uma lista de 5 a 8 tags relevantes em Português (incluindo elementos visuais detectados).
+        - title: Um título curto e descritivo em Português (Fiel ao input).
+        - description: Uma descrição detalhada e narrativa em Português (Fiel aos fatos, com tom pedagógico).
+        - date: A data mencionada ou estimada (YYYY-MM-DD).
+        - location: O local mencionado ou identificado.
+        - tags: Uma lista de 5 a 8 tags relevantes.
+        - reasoning: Explique sua lógica: "Priorizei o título do vídeo para os fatos (X, Y) e o contexto da organização para o tom pedagógico."
     `;
     return prompt;
 };

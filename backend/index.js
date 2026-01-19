@@ -27,7 +27,8 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Serve uploaded files as static
-app.use('/uploads', express.static('uploads'));
+// Serve uploaded files as static
+app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -45,10 +46,27 @@ app.use('/api/social', require('./routes/socialRoutes')); // Registered social r
 app.use('/api/audit', auditRoutes); // Registered audit routes
 app.use('/api/settings', settingsRoutes); // Registered settings routes
 app.use('/api/agents', require('./routes/agentRoutes')); // New Agent Management Routes
+app.use('/api/pedagogical', require('./routes/pedagogicalRoutes')); // [NEW] Pedagogical Routes (BNCC/PDF)
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
+
+// Global Error Handler (Must be the last middleware)
+app.use((err, req, res, next) => {
+  console.error('🔥 Global unhandled error:', err);
+
+  // Prevent double response
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  res.status(500).json({
+    message: 'Ocorreu um erro interno no servidor.',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

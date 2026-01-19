@@ -77,7 +77,7 @@ const Home = () => {
                                 <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 h-full flex flex-col">
                                     <div className="relative h-48 overflow-hidden">
                                         <img
-                                            src={memory.mediaUrl || 'https://via.placeholder.com/400x300'}
+                                            src={memory.mediaUrl || 'https://placehold.co/400x300?text=Memoria'}
                                             alt={memory.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />

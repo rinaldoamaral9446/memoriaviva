@@ -7,7 +7,7 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: 'memoria-viva',
-        allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'heic', 'heif', 'mp3', 'wav', 'webm', 'm4a', 'ogg', 'pdf', 'doc', 'docx', 'txt'],
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'heic', 'heif', 'mp3', 'wav', 'webm', 'm4a', 'ogg', 'pdf', 'doc', 'docx', 'txt', 'mp4', 'mov', 'quicktime'],
         transformation: [{ width: 1000, crop: "limit" }],
         resource_type: 'auto' // Auto-detect image vs audio vs raw (docs)
     },
@@ -34,13 +34,14 @@ const diskStorage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('image/') ||
         file.mimetype.startsWith('audio/') ||
+        file.mimetype.startsWith('video/') ||
         file.mimetype === 'application/pdf' ||
         file.mimetype === 'application/msword' ||
         file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
         file.mimetype === 'text/plain') {
         cb(null, true);
     } else {
-        cb(new Error('Not a valid file! Please upload an image, audio, or document.'), false);
+        cb(new Error('Formato de arquivo inválido! Por favor envie imagem, áudio, vídeo ou documento.'), false);
     }
 };
 
@@ -53,7 +54,7 @@ const uploadCloudinary = multer({
 
 const uploadMemory = multer({
     storage: diskStorage, // Changed from memoryStorage to diskStorage
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for large audio files
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB for large video/audio files
     fileFilter: fileFilter
 });
 

@@ -300,7 +300,7 @@ const MainLayout = () => {
             <footer className="glass border-t border-white/30 mt-auto">
                 <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                     <p className="text-center text-gray-500 text-sm font-medium">
-                        &copy; {new Date().getFullYear()} Memória Cultural Viva. Preservando histórias com Inteligência.
+                        &copy; {new Date().getFullYear()} {branding?.name || 'Memória Cultural Viva'}. Preservando histórias com Inteligência.
                     </p>
                 </div>
             </footer>

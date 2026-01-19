@@ -6,8 +6,8 @@ const { requirePermission } = require('../services/rbacService');
 
 router.use(verifyToken);
 
-router.get('/', requirePermission('memories', 'read'), eventController.getEvents);
-router.post('/', requirePermission('memories', 'create'), eventController.createEvent);
-router.post('/generate', requirePermission('memories', 'create'), eventController.generateAiSchedule);
+router.get('/', eventController.getEvents);
+router.post('/', eventController.createEvent);
+router.post('/generate', eventController.generateAiSchedule);
 
 module.exports = router;

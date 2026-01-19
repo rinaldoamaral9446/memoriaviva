@@ -10,7 +10,9 @@ const MemoryCard = ({ memory }) => {
                     <>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity" />
                         <img
-                            src={memory.mediaUrl || memory.imageUrl}
+                            src={(memory.mediaUrl || memory.imageUrl).includes('via.placeholder.com')
+                                ? 'https://placehold.co/400x200?text=Memoria+Cultural'
+                                : (memory.mediaUrl || memory.imageUrl)}
                             alt={memory.title}
                             className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                         />

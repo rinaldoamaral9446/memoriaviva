@@ -1,11 +1,136 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const PromptService = require('../services/promptService');
+const CuratorService = require('../services/curatorService');
 const fs = require('fs');
 const path = require('path');
+const { YoutubeTranscript } = require('youtube-transcript');
+const axios = require('axios');
 
-const prisma = new PrismaClient();
+const { google } = require('googleapis');
+const ytdl = require('@distube/ytdl-core');
+const youtube = google.youtube('v3');
+const { GoogleAIFileManager } = require('@google/generative-ai/server'); // [NEW] For Multimodal
+const browserService = require('../services/browserService'); // [NEW] Visual Agent
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
+
+// Helper to download YouTube video for multimodal analysis
+// Helper to download YouTube audio (Fallback)
+// Helper to download YouTube audio (Fallback)
+async function downloadYouTubeAudio(url) {
+    return new Promise((resolve, reject) => {
+        const videoId = ytdl.getVideoID(url);
+        const tempPath = path.join(__dirname, `../uploads/yt_audio_${videoId}.mp3`);
+        let writeStream;
+
+        // Timeout Protection (45s)
+        const timeout = setTimeout(() => {
+            if (writeStream) {
+                try { writeStream.destroy(); } catch (e) { }
+            }
+            reject(new Error('Audio download timed out (45s)'));
+        }, 45000);
+
+        // Ensure uploads dir exists
+        if (!fs.existsSync(path.join(__dirname, '../uploads'))) {
+            fs.mkdirSync(path.join(__dirname, '../uploads'));
+        }
+
+        console.log(`⬇️ Starting AUDIO download for: ${url}`);
+        const stream = ytdl(url, {
+            quality: 'lowestaudio',
+            filter: 'audioonly'
+        });
+        writeStream = fs.createWriteStream(tempPath);
+
+        stream.pipe(writeStream);
+
+        writeStream.on('finish', () => {
+            clearTimeout(timeout);
+            console.log(`✅ Audio Download completed: ${tempPath}`);
+            resolve(tempPath);
+        });
+        writeStream.on('error', (err) => {
+            clearTimeout(timeout);
+            console.error('❌ Audio Stream write error:', err);
+            reject(err);
+        });
+        stream.on('error', (err) => {
+            clearTimeout(timeout);
+            console.error('❌ YTDL Audio stream error:', err.message);
+            reject(err);
+        });
+    });
+}
+
+// Helper to download YouTube video for multimodal analysis
+async function downloadYouTubeVideo(url) {
+    return new Promise((resolve, reject) => {
+        const videoId = ytdl.getVideoID(url);
+        const tempPath = path.join(__dirname, `../uploads/yt_${videoId}.mp4`);
+        let writeStream;
+
+        // Timeout Protection (45s)
+        const timeout = setTimeout(() => {
+            if (writeStream) {
+                try { writeStream.destroy(); } catch (e) { }
+            }
+            reject(new Error('Video download timed out (45s)'));
+        }, 45000);
+
+        // Ensure uploads dir exists
+        if (!fs.existsSync(path.join(__dirname, '../uploads'))) {
+            fs.mkdirSync(path.join(__dirname, '../uploads'));
+        }
+
+        console.log(`⬇️ Starting download for: ${url}`);
+        // Try to use a more robust agent/client configuration if possible, 
+        // but for now relying on standard call with error handling.
+        const stream = ytdl(url, {
+            quality: 'lowest',
+            filter: 'audioandvideo'
+        });
+        writeStream = fs.createWriteStream(tempPath);
+
+        stream.pipe(writeStream);
+
+        writeStream.on('finish', () => {
+            console.log(`✅ Download completed: ${tempPath}`);
+            resolve(tempPath);
+        });
+        writeStream.on('error', (err) => {
+            console.error('❌ Stream write error:', err);
+            reject(err);
+        });
+        stream.on('error', (err) => {
+            console.error('❌ YTDL stream error:', err.message);
+            reject(err);
+        });
+    });
+}
+
+// Helper to wait for Gemini file to be ACTIVE (processed)
+async function waitForFileActive(fileManager, uploadFileResult) {
+    const name = uploadFileResult.file.name;
+    let file = await fileManager.getFile(name);
+    let attempts = 0;
+    const maxAttempts = 30; // 30 * 4s = 120s (2 minutes)
+
+    while (file.state === 'PROCESSING') {
+        attempts++;
+        if (attempts > maxAttempts) {
+            throw new Error('Timeout: Video processing took too long.');
+        }
+        await new Promise(resolve => setTimeout(resolve, 4000));
+        file = await fileManager.getFile(name);
+    }
+
+    if (file.state === 'FAILED') {
+        throw new Error('Video processing failed by Gemini.');
+    }
+    return file;
+}
 
 exports.processMemoryInput = async (req, res) => {
     try {
@@ -70,6 +195,7 @@ exports.processMemoryInput = async (req, res) => {
         // Get organization-specific AI instructions
         let organizationInstructions = '';
         let organizationGuardrails = '';
+        let culturalContext = '';
 
         if (req.user && req.user.organizationId) {
             const organization = await prisma.organization.findUnique({
@@ -82,6 +208,7 @@ exports.processMemoryInput = async (req, res) => {
                     const config = JSON.parse(organization.config);
                     organizationInstructions = config.aiInstructions || '';
                     organizationGuardrails = config.aiGuardrails || '';
+                    culturalContext = config.culturalContext || '';
                 } catch (e) {
                     console.log('Failed to parse organization config');
                 }
@@ -91,19 +218,21 @@ exports.processMemoryInput = async (req, res) => {
         let promptParts = [];
 
         // Build prompt using service
-        const systemPrompt = PromptService.buildMemoryPrompt(textInput, organizationInstructions, organizationGuardrails);
+        // Build prompt using service
+        const systemPrompt = PromptService.buildMemoryPrompt(textInput, organizationInstructions, organizationGuardrails, culturalContext);
         promptParts.push(systemPrompt);
 
         // Add media if present (image, audio, or document)
         if (file) {
             const fileSizeMB = file.size / 1024 / 1024;
             const isAudio = file.mimetype.startsWith('audio/');
+            const isVideo = file.mimetype.startsWith('video/');
             const isPDF = file.mimetype === 'application/pdf';
             const isText = file.mimetype === 'text/plain';
             const isWord = file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-            // For audio files > 5MB or PDFs, use Files API
-            if ((isAudio && fileSizeMB > 5) || isPDF) {
+            // For audio > 5MB, ALL videos, or PDFs, use Files API
+            if ((isAudio && fileSizeMB > 5) || isVideo || isPDF) {
                 // console.log(`📄 Large file or PDF (${fileSizeMB.toFixed(2)}MB), using Files API...`);
 
                 try {
@@ -117,6 +246,37 @@ exports.processMemoryInput = async (req, res) => {
                     });
 
                     // console.log(`✅ Uploaded to Files API: ${uploadResult.file.uri}`);
+
+                    // [FIX] Wait for video to be ACTIVE before generating content
+                    if (isVideo) {
+                        // console.log('⏳ Waiting for video to be processed by Gemini...');
+                        await waitForFileActive(fileManager, uploadResult);
+                        // console.log('✅ Video is ACTIVE and ready for analysis.');
+                        // Audio usually processes fast, but safety check doesn't hurt
+                        // console.log('⏳ Waiting for large audio processing...');
+                        await waitForFileActive(fileManager, uploadResult);
+                    }
+
+                    // [NEW] Generate Thumbnail for Video
+                    if (isVideo) {
+                        try {
+                            const MediaService = require('../services/mediaService');
+                            // Generate thumbnail and get URL
+                            const thumbUrl = await MediaService.generateThumbnail(file.path, file.originalname);
+                            // console.log('✅ Thumbnail generated:', thumbUrl);
+
+                            req.thumbnailUrl = thumbUrl;
+                            req.fileMetadata = {
+                                duration: 0, // Todo: Get from ffmpeg if possible
+                                size: file.size,
+                                originalName: file.originalname,
+                                mimeType: file.mimetype
+                            };
+                        } catch (thumbError) {
+                            console.error('⚠️ Thumbnail generation failed:', thumbError);
+                            // Quality Filter: Don't fail the request, just log it.
+                        }
+                    }
 
                     // Add file reference to prompt
                     promptParts.push({
@@ -199,6 +359,12 @@ exports.processMemoryInput = async (req, res) => {
         if (req.documentUrl) {
             structuredData.documentUrl = req.documentUrl;
         }
+        if (req.thumbnailUrl) {
+            structuredData.thumbnailUrl = req.thumbnailUrl;
+        }
+        if (req.fileMetadata) {
+            structuredData.metadata = req.fileMetadata;
+        }
 
         // 🎨 Auto-generate cover image if no image provided (audio-only memory)
         if (!imageUrl && (audioUrl || file?.mimetype.startsWith('audio/'))) {
@@ -237,6 +403,247 @@ exports.processMemoryInput = async (req, res) => {
 
         console.error('AI Processing Error:', error);
         res.status(500).json({ message: 'Error processing content', error: error.message });
+    }
+};
+
+exports.processLink = async (req, res) => {
+    let tempVideoPath = null;
+    try {
+        const { youtubeUrl, textInput } = req.body;
+        console.log('🚀 [AI] Processing Link START:', youtubeUrl);
+
+        if (!youtubeUrl) {
+            return res.status(400).json({ message: 'URL do YouTube é obrigatória.' });
+        }
+
+        // 1. Extract Metadata (Pro: Data API v3 or Fallback: oEmbed)
+        let videoTitle = 'Memória de Vídeo';
+        let thumbnailUrl = null;
+        let authorName = '';
+        let description = '';
+
+        if (process.env.YOUTUBE_API_KEY) {
+            try {
+                // Extract ID
+                const videoId = ytdl.getVideoID(youtubeUrl);
+                const response = await youtube.videos.list({
+                    key: process.env.YOUTUBE_API_KEY,
+                    part: 'snippet',
+                    id: videoId
+                });
+
+                if (response.data.items.length > 0) {
+                    const snippet = response.data.items[0].snippet;
+                    videoTitle = snippet.title;
+                    description = snippet.description;
+                    authorName = snippet.channelTitle;
+                    // Get best thumbnail
+                    thumbnailUrl = snippet.thumbnails?.maxres?.url || snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url;
+                }
+            } catch (apiError) {
+                console.warn('⚠️ YouTube Data API failed, falling back to oEmbed:', apiError.message);
+            }
+        }
+
+        // Fallback or if API failed
+        if (!process.env.YOUTUBE_API_KEY || !thumbnailUrl) {
+            try {
+                const oEmbedUrl = `https://www.youtube.com/oEmbed?url=${encodeURIComponent(youtubeUrl)}&format=json`;
+                const metadata = await axios.get(oEmbedUrl);
+                videoTitle = metadata.data.title || videoTitle;
+                thumbnailUrl = metadata.data.thumbnail_url || thumbnailUrl;
+                authorName = metadata.data.author_name || authorName;
+            } catch (e) {
+                console.warn('⚠️ Failed to fetch oEmbed metadata:', e.message);
+            }
+        }
+
+        // 2. Fetch Transcript
+        console.log('📦 [AI] Metadata extracted:', videoTitle);
+        let transcriptText = '';
+        try {
+            const transcript = await YoutubeTranscript.fetchTranscript(youtubeUrl);
+            transcriptText = transcript.map(t => t.text).join(' ');
+        } catch (e) {
+            console.warn('⚠️ Failed to fetch transcript:', e.message);
+        }
+        console.log('📜 [AI] Transcript length:', transcriptText ? transcriptText.length : 0);
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        let promptParts = [];
+        let systemPrompt = '';
+
+        // Prepare context
+        let organizationInstructions = '';
+        let organizationGuardrails = '';
+        let culturalContext = '';
+
+        if (req.user && req.user.organizationId) {
+            const organization = await prisma.organization.findUnique({
+                where: { id: req.user.organizationId },
+                select: { config: true }
+            });
+            if (organization?.config) {
+                try {
+                    const config = JSON.parse(organization.config);
+                    organizationInstructions = config.aiInstructions || '';
+                    organizationGuardrails = config.aiGuardrails || '';
+                    culturalContext = config.culturalContext || '';
+                } catch (e) { }
+            }
+        }
+
+        // 3. Strategy Decision: Text vs Multimodal
+        if (transcriptText) {
+            // STRATEGY A: Text-based (Cheaper/Faster)
+            const promptInput = textInput || '';
+            const transcriptContext = `\n\n[TRANSCRICAO DO VÍDEO START]\n${transcriptText}\n[TRANSCRICAO DO VÍDEO END]\n\n`;
+            const metadataContext = `\nTítulo do Vídeo: ${videoTitle}\nCanal: ${authorName}\nURL: ${youtubeUrl}\nDescrição: ${description}`;
+
+            systemPrompt = PromptService.buildMemoryPrompt(
+                promptInput + metadataContext + transcriptContext,
+                organizationInstructions,
+                organizationGuardrails,
+                culturalContext
+            );
+            promptParts.push(systemPrompt);
+
+        } else {
+            // STRATEGY C: Visual Navigation Agent (Proprietary "Vision" Mode)
+            console.log('🕵️‍♂️ No transcript found. Activating Visual Navigation Agent...');
+
+            try {
+                // 1. Capture Data via Headless Browser (Hybrid: Visual + Innertube Transcript)
+                const visualData = await browserService.capturePageData(youtubeUrl);
+
+                // STRATEGY C.1: Innertube Transcript (Best Case)
+                if (visualData.transcript) {
+                    console.log('📜 [BrowserAgent] Innertube Transcript found! Using Text Strategy.');
+                    const transcriptContext = `\n\n[TRANSCRICAO DO VÍDEO (VIA BROWSER)]\n${visualData.transcript}\n[FIM TRANSCRICAO]\n\n`;
+                    const enrichedMetadata = `\nTítulo (Visual): ${visualData.title}\nURL: ${youtubeUrl}\nDescrição Expandida: ${visualData.description}`;
+
+                    systemPrompt = PromptService.buildMemoryPrompt(
+                        (textInput || '') + enrichedMetadata + transcriptContext,
+                        organizationInstructions,
+                        organizationGuardrails,
+                        culturalContext
+                    );
+                    promptParts.push(systemPrompt);
+
+                    // Cleanup Screenshot (Unused)
+                    try { fs.unlinkSync(visualData.screenshotPath); } catch (e) { }
+
+                } else {
+                    // STRATEGY C.2: Visual Backup (Screenshot)
+                    console.log('📸 [BrowserAgent] No transcript. Using Visual Backup.');
+
+                    const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
+                    console.log('📤 Uploading Screenshot to Gemini...');
+                    const uploadResult = await fileManager.uploadFile(visualData.screenshotPath, {
+                        mimeType: 'image/png',
+                        displayName: `yt_screen_${Date.now()}`
+                    });
+
+                    await waitForFileActive(fileManager, uploadResult);
+
+                    const visualInstruction = `
+                        [VISUAL AGENT ACTIVATED]
+                        Este vídeo não possui legendas (nem geradas automaticamente).
+                        Analise a IMAGEM (screenshot do vídeo) e a DESCRIÇÃO EXPANDIDA abaixo.
+                        
+                        1. Identifique o tema visual e texto na tela.
+                        2. Cruze com a Descrição Expandida.
+                        3. Determine o contexto pedagógico.
+                        
+                        Descrição Expandida: ${visualData.description}
+                        Nota do Usuário: ${textInput || 'Nenhuma.'}
+                    `;
+                    const enrichedMetadata = `\nTítulo (Visual): ${visualData.title}\nURL: ${youtubeUrl}\n`;
+
+                    systemPrompt = PromptService.buildMemoryPrompt(
+                        visualInstruction + enrichedMetadata,
+                        organizationInstructions,
+                        organizationGuardrails,
+                        culturalContext
+                    );
+
+                    promptParts.push(systemPrompt);
+                    promptParts.push({
+                        fileData: {
+                            fileUri: uploadResult.file.uri,
+                            mimeType: 'image/png'
+                        }
+                    });
+                }
+
+                // Cleanup Screenshot
+                // fs.unlinkSync(visualData.screenshotPath); // Optional: Keep for debugging or delete
+
+            } catch (agentError) {
+                console.error('⚠️ Visual Agent Failed:', agentError.message);
+
+                // FALLBACK D: Pure Metadata (Last Resort)
+                console.log('📝 Falling back to Pure Metadata...');
+                const metadataContext = `
+                [AVISO: FALHA NO AGENTE VISUAL]
+                Use apenas os metadados básicos.
+                Título: ${videoTitle}
+                Descrição: ${description}
+                Nota: ${textInput}
+                `;
+
+                systemPrompt = PromptService.buildMemoryPrompt(
+                    metadataContext,
+                    organizationInstructions,
+                    organizationGuardrails,
+                    culturalContext
+                );
+                promptParts.push(systemPrompt);
+            }
+        }
+
+        // 4. Generate Content
+        const result = await model.generateContent(promptParts);
+        const response = await result.response;
+        const text = response.text();
+
+        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const structuredData = JSON.parse(jsonStr);
+
+        // 5. Populate Metadata
+        if (thumbnailUrl) {
+            structuredData.thumbnailUrl = thumbnailUrl;
+        }
+        structuredData.metadata = {
+            source: 'YouTube',
+            originalUrl: youtubeUrl,
+            originalTitle: videoTitle,
+            duration: 0,
+            analysisType: transcriptText ? 'transcript' : 'multimodal_visual'
+        };
+
+        // Cleanup
+        if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+            fs.unlinkSync(tempVideoPath);
+        }
+
+        res.json(structuredData);
+
+    } catch (error) {
+        // Cleanup on error
+        if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+            try { fs.unlinkSync(tempVideoPath); } catch (e) { }
+        }
+
+        // [REQUESTED FIX] Log the exact error
+        console.log('ERRO REAL DO BACKEND:', error);
+
+        // [REQUESTED FIX] Return friendly JSON instead of 500
+        return res.status(200).json({
+            success: false,
+            message: 'Vídeo sem legendas e falha no processamento visual. Por favor, descreva manualmente.',
+            errorDetails: error.message
+        });
     }
 };
 
@@ -296,14 +703,13 @@ exports.curateMemories = async (req, res) => {
             try { config = JSON.parse(organization.config); } catch (e) { }
         }
 
-        // Call Curator Service
-        const CuratorService = require('../services/curatorService');
+        // Call Curator Service (Import moved to top)
         const suggestions = await CuratorService.generateCuratedCollections(memories, config);
 
         res.json({ suggestions });
 
     } catch (error) {
-        console.error('Curation Error:', error);
+        console.error('Curation Error:', error.stack || error);
         res.status(500).json({ message: 'Error generating suggestions', error: error.message });
     }
 };
