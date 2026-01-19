@@ -389,7 +389,7 @@ exports.generateLessonPlan = async (req, res) => {
 
         // Call Pedagogical Service
         const PedagogicalService = require('../services/pedagogicalService');
-        const lessonPlan = await PedagogicalService.generateLessonPlan(memories, gradeLevel, subject, topic);
+        const lessonPlan = await PedagogicalService.generateLessonPlan(memories, gradeLevel, subject, topic, req.user.userId, organizationId);
 
         res.json(lessonPlan);
 

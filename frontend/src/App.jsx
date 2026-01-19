@@ -5,6 +5,7 @@ import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import SemedDashboard from './pages/SemedDashboard'; // [NEW]
 import MemoriesPage from './pages/MemoriesPage';
 import AgentMarketplace from './pages/AgentMarketplace';
 import AdminPage from './pages/AdminPage';
@@ -40,6 +41,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              {/* [NEW] Dashboard SEMED (Gestão) */}
+              <Route
+                path="dashboard/semed"
+                element={
+                  <ProtectedRoute>
+                    <SemedDashboard />
                   </ProtectedRoute>
                 }
               />

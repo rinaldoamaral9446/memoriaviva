@@ -1,4 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 // Initialize Google AI client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
@@ -119,7 +121,7 @@ function getEarlyChildhoodPrompt(memoryContext, gradeLevel, topic) {
  * Generate a BNCC-aligned lesson plan based on memories
  * Adapts automatically to Early Childhood or Fundamental Education
  */
-async function generateLessonPlan(memories, gradeLevel, subject, topic) {
+async function generateLessonPlan(memories, gradeLevel, subject, topic, userId, organizationId) {
     try {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
@@ -148,8 +150,31 @@ async function generateLessonPlan(memories, gradeLevel, subject, topic) {
 
         // Clean up markdown
         const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const json = JSON.parse(jsonStr);
 
-        return JSON.parse(jsonStr);
+        // [PERSISTENCE] Save Lesson Plan to Database
+        if (userId && organizationId) {
+            try {
+                const savedPlan = await prisma.lessonPlan.create({
+                    data: {
+                        title: json.title || 'Plano de Aula Sem Título',
+                        gradeLevel: gradeLevel || 'N/A',
+                        subject: subject || null,
+                        topic: topic || null,
+                        content: JSON.stringify(json),
+                        userId: parseInt(userId),
+                        organizationId: parseInt(organizationId)
+                    }
+                });
+                return { ...json, id: savedPlan.id };
+            } catch (dbError) {
+                console.error('Failed to save lesson plan to DB:', dbError);
+                // Return generated plan even if save fails, but log error
+                return json;
+            }
+        }
+
+        return json;
 
     } catch (error) {
         console.error('Pedagogical Service Error:', error);

@@ -29,6 +29,9 @@ model Organization {
   aiUsages       AiUsage[]
   roles          Role[]
   agents         Agent[]
+  
+  schoolUnits    SchoolUnit[] // [NEW]
+  lessonPlans    LessonPlan[] // [NEW]
 }
 
 model AiLog {
@@ -86,15 +89,62 @@ model User {
   id             Int          @id @default(autoincrement())
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  schoolUnitId   Int?         // [NEW] Relation to SchoolUnit
+  schoolUnit     SchoolUnit?  @relation(fields: [schoolUnitId], references: [id])
+  
   name           String
   email          String       @unique
   password       String
-  role           String       @default("user") // Deprecated: keeping for backward compatibility during migration
-  roleId         Int?         // New dynamic role relation
+  role           String       @default("user") // Deprecated
+  roleId         Int?         
   userRole       Role?        @relation(fields: [roleId], references: [id])
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  
   memories       Memory[]
+  lessonPlans    LessonPlan[]
+}
+
+// [NEW] Unidade Escolar (CMEI/Escola)
+model SchoolUnit {
+  id             Int          @id @default(autoincrement())
+  name           String       // "CMEI Ana Carolina"
+  inepCode       String?      // Código INEP (Opcional)
+  address        String?      // Endereço para Geolocalização futura
+  
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  users          User[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+// [NEW] Plano de Aula (Persistência)
+model LessonPlan {
+  id             Int          @id @default(autoincrement())
+  
+  title          String
+  gradeLevel     String       // "Grupo 5 - Educação Infantil"
+  subject        String?      // "Artes" ou null (EI)
+  topic          String?
+  
+  content        String       // JSON stringified do plano completo
+  
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime     @default(now())
+  
+  @@index([organizationId])
+  @@index([userId])
 }
 
 model Role {

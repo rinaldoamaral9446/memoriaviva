@@ -268,6 +268,32 @@ async function main() {
         }
     });
 
+    // [New] Create School Units for Maceió
+    console.log('🏫 Creating School Units for Maceió...');
+    const schoolsData = [
+        { name: 'CMEI Ana Carolina', address: 'Tabuleiro do Martins' },
+        { name: 'Escola Municipal Pompeu Sarmento', address: 'Barro Duro' },
+        { name: 'CMEI Pingo de Gente', address: 'Jacintinho' }
+    ];
+
+    for (const school of schoolsData) {
+        // Simple check to avoid duplicates during re-runs
+        const existing = await prisma.schoolUnit.findFirst({
+            where: { name: school.name, organizationId: orgMaceio.id }
+        });
+
+        if (!existing) {
+            await prisma.schoolUnit.create({
+                data: {
+                    name: school.name,
+                    address: school.address,
+                    organizationId: orgMaceio.id
+                }
+            });
+        }
+    }
+    console.log(`✅ Created/Verified School Units for Maceió\n`);
+
     console.log(`✅ Created ${6} users with roles\n`);
 
     // Migrate existing memories to Demo org
