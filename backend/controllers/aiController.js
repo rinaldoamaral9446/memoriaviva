@@ -166,78 +166,78 @@ exports.processMemoryInput = async (req, res) => {
 
         // Debug log: Check prompt structure before sending
         // console.log('🚀 Sending to Gemini:', {
-        model: 'gemini-2.0-flash',
-            promptPartsCount: promptParts.length,
-                hasInlineData: !!promptParts.find(p => p.inlineData),
-                    hasFileData: !!promptParts.find(p => p.fileData),
-                        inlineMimeType: promptParts.find(p => p.inlineData)?.inlineData?.mimeType,
-                            fileMimeType: promptParts.find(p => p.fileData)?.fileData?.mimeType
-    });
+        //     model: 'gemini-2.0-flash',
+        //     promptPartsCount: promptParts.length,
+        //     hasInlineData: !!promptParts.find(p => p.inlineData),
+        //     hasFileData: !!promptParts.find(p => p.fileData),
+        //     inlineMimeType: promptParts.find(p => p.inlineData)?.inlineData?.mimeType,
+        //     fileMimeType: promptParts.find(p => p.fileData)?.fileData?.mimeType
+        // });
 
-    let result;
-    try {
-        result = await model.generateContent(promptParts);
-    } catch (geminiError) {
-        console.error('❌ Gemini API Error Details:', JSON.stringify(geminiError, null, 2));
-        console.error('❌ Gemini Error Message:', geminiError.message);
-        throw geminiError; // Re-throw to be caught by outer block
-    }
-    const response = await result.response;
-    const text = response.text();
-
-    // Clean up markdown code blocks if present
-    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const structuredData = JSON.parse(jsonStr);
-
-    // Add the media URLs to the response
-    if (imageUrl) {
-        structuredData.imageUrl = imageUrl;
-    }
-    if (audioUrl) {
-        structuredData.audioUrl = audioUrl;
-    }
-    if (req.documentUrl) {
-        structuredData.documentUrl = req.documentUrl;
-    }
-
-    // 🎨 Auto-generate cover image if no image provided (audio-only memory)
-    if (!imageUrl && (audioUrl || file?.mimetype.startsWith('audio/'))) {
-        // console.log('🎨 No image provided, generating AI cover image...');
-        const ImageGenerationService = require('../services/imageGenerationService');
-        const generatedImageUrl = await ImageGenerationService.generateMemoryImage(structuredData);
-
-        if (generatedImageUrl) {
-            structuredData.imageUrl = generatedImageUrl;
-            // console.log('✅ AI-generated cover image added');
-        }
-    }
-
-    // Cleanup temp file
-    if (req.file && req.file.path) {
+        let result;
         try {
-            if (fs.existsSync(req.file.path)) {
-                fs.unlinkSync(req.file.path);
-                // console.log(`🧹 Cleaned up temp file: ${req.file.path}`);
-            }
-        } catch (cleanupError) {
-            console.error('Error cleaning up temp file:', cleanupError);
+            result = await model.generateContent(promptParts);
+        } catch (geminiError) {
+            console.error('❌ Gemini API Error Details:', JSON.stringify(geminiError, null, 2));
+            console.error('❌ Gemini Error Message:', geminiError.message);
+            throw geminiError; // Re-throw to be caught by outer block
         }
-    }
+        const response = await result.response;
+        const text = response.text();
 
-    res.json(structuredData);
-} catch (error) {
-    // Cleanup temp file on error too
-    if (req.file && req.file.path) {
-        try {
-            if (fs.existsSync(req.file.path)) {
-                fs.unlinkSync(req.file.path);
+        // Clean up markdown code blocks if present
+        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const structuredData = JSON.parse(jsonStr);
+
+        // Add the media URLs to the response
+        if (imageUrl) {
+            structuredData.imageUrl = imageUrl;
+        }
+        if (audioUrl) {
+            structuredData.audioUrl = audioUrl;
+        }
+        if (req.documentUrl) {
+            structuredData.documentUrl = req.documentUrl;
+        }
+
+        // 🎨 Auto-generate cover image if no image provided (audio-only memory)
+        if (!imageUrl && (audioUrl || file?.mimetype.startsWith('audio/'))) {
+            // console.log('🎨 No image provided, generating AI cover image...');
+            const ImageGenerationService = require('../services/imageGenerationService');
+            const generatedImageUrl = await ImageGenerationService.generateMemoryImage(structuredData);
+
+            if (generatedImageUrl) {
+                structuredData.imageUrl = generatedImageUrl;
+                // console.log('✅ AI-generated cover image added');
             }
-        } catch (cleanupError) { }
-    }
+        }
 
-    console.error('AI Processing Error:', error);
-    res.status(500).json({ message: 'Error processing content', error: error.message });
-}
+        // Cleanup temp file
+        if (req.file && req.file.path) {
+            try {
+                if (fs.existsSync(req.file.path)) {
+                    fs.unlinkSync(req.file.path);
+                    // console.log(`🧹 Cleaned up temp file: ${req.file.path}`);
+                }
+            } catch (cleanupError) {
+                console.error('Error cleaning up temp file:', cleanupError);
+            }
+        }
+
+        res.json(structuredData);
+    } catch (error) {
+        // Cleanup temp file on error too
+        if (req.file && req.file.path) {
+            try {
+                if (fs.existsSync(req.file.path)) {
+                    fs.unlinkSync(req.file.path);
+                }
+            } catch (cleanupError) { }
+        }
+
+        console.error('AI Processing Error:', error);
+        res.status(500).json({ message: 'Error processing content', error: error.message });
+    }
 };
 
 exports.optimizeInstructions = async (req, res) => {
