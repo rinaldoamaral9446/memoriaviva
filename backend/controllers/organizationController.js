@@ -32,6 +32,29 @@ const getAllOrganizations = async (req, res) => {
     }
 };
 
+// Get public organizations (minimal data for registration)
+const getPublicOrganizations = async (req, res) => {
+    try {
+        const organizations = await prisma.organization.findMany({
+            where: { isActive: true },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true,
+                primaryColor: true,
+                secondaryColor: true
+            },
+            orderBy: { name: 'asc' }
+        });
+
+        res.json({ organizations });
+    } catch (error) {
+        console.error('Error fetching public organizations:', error);
+        res.status(500).json({ error: 'Failed to fetch organizations' });
+    }
+};
+
 // Get single organization
 const getOrganization = async (req, res) => {
     try {
@@ -188,6 +211,7 @@ const deleteOrganization = async (req, res) => {
 
 module.exports = {
     getAllOrganizations,
+    getPublicOrganizations,
     getOrganization,
     getOrganizationBySlug,
     createOrganization,

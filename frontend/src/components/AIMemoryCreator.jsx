@@ -14,6 +14,27 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [structuredData, setStructuredData] = useState(null);
     const [isListening, setIsListening] = useState(false);
+    const [events, setEvents] = useState([]);
+    const [selectedEventId, setSelectedEventId] = useState('');
+
+    React.useEffect(() => {
+        fetchEvents();
+    }, []);
+
+    const fetchEvents = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_ENDPOINTS.baseUrl}/events`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setEvents(data);
+            }
+        } catch (error) {
+            console.error('Error fetching events:', error);
+        }
+    };
 
     const startListening = () => {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -122,7 +143,8 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
                     location: structuredData.location,
                     isPublic: true,
                     imageUrl: structuredData.imageUrl || 'https://via.placeholder.com/400x200?text=Memória+Cultural',
-                    documentUrl: structuredData.documentUrl
+                    documentUrl: structuredData.documentUrl,
+                    eventId: selectedEventId || null
                 })
             });
 

@@ -7,8 +7,29 @@ const MemoryForm = ({ onMemoryCreated }) => {
     const [date, setDate] = useState('');
     const [location, setLocation] = useState('');
     const [imageUrl, setImageUrl] = useState('');
+    const [events, setEvents] = useState([]);
+    const [selectedEventId, setSelectedEventId] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        fetchEvents();
+    }, []);
+
+    const fetchEvents = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:5001/api/events', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setEvents(data);
+            }
+        } catch (error) {
+            console.error('Error fetching events:', error);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -23,7 +44,14 @@ const MemoryForm = ({ onMemoryCreated }) => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ title, description, date, location, imageUrl }),
+                body: JSON.stringify({
+                    title,
+                    description,
+                    date,
+                    location,
+                    imageUrl,
+                    eventId: selectedEventId || null
+                }),
             });
 
             if (!response.ok) {

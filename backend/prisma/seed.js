@@ -81,7 +81,91 @@ async function main() {
         }
     });
 
+    const orgMaceio = await prisma.organization.upsert({
+        where: { slug: 'maceio' },
+        update: {},
+        create: {
+            name: 'Prefeitura de Maceió',
+            slug: 'maceio',
+            domain: 'maceio.memoriaviva.com.br',
+            logo: null,
+            primaryColor: '#0095DA', // Azul Maceió
+            secondaryColor: '#FFFFFF', // Branco
+            config: JSON.stringify({
+                aiInstructions: 'Foque na cultura alagoana, folclore, artesanato e belezas naturais de Maceió. Destaque o Guerreiro, o Pastoril e a história dos bairros tradicionais.',
+                features: ['memories', 'timeline', 'ai', 'folklore-mode']
+            }),
+            isActive: true
+        }
+    });
+
     console.log(`✅ Created ${4} organizations\n`);
+
+    // Helper to create default roles for an organization
+    const createDefaultRoles = async (orgId) => {
+        const adminRole = await prisma.role.upsert({
+            where: { organizationId_slug: { organizationId: orgId, slug: 'admin' } },
+            update: {},
+            create: {
+                name: 'Administrador',
+                slug: 'admin',
+                description: 'Acesso total a todas as funcionalidades da organização.',
+                permissions: JSON.stringify({
+                    memories: ['create', 'read', 'update', 'delete', 'publish'],
+                    users: ['create', 'read', 'update', 'delete'],
+                    settings: ['read', 'update'],
+                    analytics: ['read']
+                }),
+                isSystem: true,
+                organizationId: orgId
+            }
+        });
+
+        const editorRole = await prisma.role.upsert({
+            where: { organizationId_slug: { organizationId: orgId, slug: 'editor' } },
+            update: {},
+            create: {
+                name: 'Editor',
+                slug: 'editor',
+                description: 'Pode criar e editar memórias, mas não gerenciar usuários.',
+                permissions: JSON.stringify({
+                    memories: ['create', 'read', 'update'],
+                    users: ['read'],
+                    settings: [],
+                    analytics: ['read']
+                }),
+                isSystem: true,
+                organizationId: orgId
+            }
+        });
+
+        const userRole = await prisma.role.upsert({
+            where: { organizationId_slug: { organizationId: orgId, slug: 'user' } },
+            update: {},
+            create: {
+                name: 'Colaborador',
+                slug: 'user',
+                description: 'Pode visualizar memórias e criar rascunhos.',
+                permissions: JSON.stringify({
+                    memories: ['create_draft', 'read'],
+                    users: [],
+                    settings: [],
+                    analytics: []
+                }),
+                isSystem: true,
+                organizationId: orgId
+            }
+        });
+
+        return { admin: adminRole, editor: editorRole, user: userRole };
+    };
+
+    console.log('🛡️ Creating default roles...');
+    const demoRoles = await createDefaultRoles(orgDemo.id);
+    const spRoles = await createDefaultRoles(orgSP.id);
+    const rioRoles = await createDefaultRoles(orgRio.id);
+    const empresaRoles = await createDefaultRoles(orgEmpresa.id);
+    const maceioRoles = await createDefaultRoles(orgMaceio.id);
 
     // Create Users for each organization
     console.log('👥 Creating users...');
@@ -91,80 +175,100 @@ async function main() {
     // Demo Org Users
     const demoAdmin = await prisma.user.upsert({
         where: { email: 'admin@demo.com' },
-        update: {},
+        update: { role: 'super_admin' }, // Super admin doesn't need a roleId in this context yet, or we can give him admin role
         create: {
             organizationId: orgDemo.id,
             name: 'Admin Demo',
             email: 'admin@demo.com',
             password: hashedPassword,
-            role: 'admin'
+            role: 'super_admin',
+            roleId: demoRoles.admin.id
         }
     });
 
     const demoUser = await prisma.user.upsert({
         where: { email: 'teste@example.com' },
-        update: { organizationId: orgDemo.id },
+        update: { organizationId: orgDemo.id, roleId: demoRoles.user.id },
         create: {
             organizationId: orgDemo.id,
             name: 'Usuário Teste',
             email: 'teste@example.com',
             password: hashedPassword,
-            role: 'user'
+            role: 'user',
+            roleId: demoRoles.user.id
         }
     });
 
     // SP Users
     const spAdmin = await prisma.user.upsert({
         where: { email: 'gestor@sp.gov.br' },
-        update: {},
+        update: { roleId: spRoles.admin.id },
         create: {
             organizationId: orgSP.id,
             name: 'Gestor Cultural SP',
             email: 'gestor@sp.gov.br',
             password: hashedPassword,
-            role: 'admin'
+            role: 'admin',
+            roleId: spRoles.admin.id
         }
     });
 
     const spEditor = await prisma.user.upsert({
         where: { email: 'historiador@sp.gov.br' },
-        update: {},
+        update: { roleId: spRoles.editor.id },
         create: {
             organizationId: orgSP.id,
             name: 'Historiador Municipal',
             email: 'historiador@sp.gov.br',
             password: hashedPassword,
-            role: 'editor'
+            role: 'editor',
+            roleId: spRoles.editor.id
         }
     });
 
     // Rio Users
     const rioAdmin = await prisma.user.upsert({
         where: { email: 'cultura@rio.gov.br' },
-        update: {},
+        update: { roleId: rioRoles.admin.id },
         create: {
             organizationId: orgRio.id,
             name: 'Secretaria de Cultura RJ',
             email: 'cultura@rio.gov.br',
             password: hashedPassword,
-            role: 'admin'
+            role: 'admin',
+            roleId: rioRoles.admin.id
         }
     });
 
     // Empresa Users
     const empresaAdmin = await prisma.user.upsert({
         where: { email: 'rh@empresaabc.com' },
-        update: {},
+        update: { roleId: empresaRoles.admin.id },
         create: {
             organizationId: orgEmpresa.id,
             name: 'RH Empresa ABC',
             email: 'rh@empresaabc.com',
             password: hashedPassword,
-            role: 'admin'
+            role: 'admin',
+            roleId: empresaRoles.admin.id
         }
     });
 
-    console.log(`✅ Created ${6} users\n`);
+    // Maceió Users
+    const maceioAdmin = await prisma.user.upsert({
+        where: { email: 'cultura@maceio.gov.br' },
+        update: { roleId: maceioRoles.admin.id },
+        create: {
+            organizationId: orgMaceio.id,
+            name: 'Secretaria de Cultura Maceió',
+            email: 'cultura@maceio.gov.br',
+            password: hashedPassword,
+            role: 'admin',
+            roleId: maceioRoles.admin.id
+        }
+    });
+
+    console.log(`✅ Created ${6} users with roles\n`);
 
     // Migrate existing memories to Demo org
     console.log('📝 Migrating existing memories to Demo org...');
@@ -245,7 +349,8 @@ async function main() {
     console.log('   Demo Admin: admin@demo.com / senha123');
     console.log('   SP Gestor: gestor@sp.gov.br / senha123');
     console.log('   Rio Cultura: cultura@rio.gov.br / senha123');
-    console.log('   Empresa RH: rh@empresaabc.com / senha123\n');
+    console.log('   Empresa RH: rh@empresaabc.com / senha123');
+    console.log('   Maceió Cultura: cultura@maceio.gov.br / senha123\n');
 }
 
 main()

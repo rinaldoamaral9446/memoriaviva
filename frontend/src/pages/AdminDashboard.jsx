@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Plus, Bot, CheckCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Building2, Plus, Bot, CheckCircle, Shield, Users } from 'lucide-react';
 import { API_URL } from '../config/api';
 
 const AdminDashboard = () => {
     const [organizations, setOrganizations] = useState([]);
+    const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showAIOnboarding, setShowAIOnboarding] = useState(false);
 
@@ -16,19 +18,26 @@ const AdminDashboard = () => {
     const [newOrgData, setNewOrgData] = useState({});
 
     useEffect(() => {
-        fetchOrganizations();
+        fetchData();
     }, []);
 
-    const fetchOrganizations = async () => {
+    const fetchData = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/organizations`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            setOrganizations(data.organizations || []);
+            const headers = { 'Authorization': `Bearer ${token}` };
+
+            const [orgsRes, statsRes] = await Promise.all([
+                fetch(`${API_URL}/api/organizations`, { headers }),
+                fetch(`${API_URL}/api/admin/stats`, { headers })
+            ]);
+
+            const orgsData = await orgsRes.json();
+            const statsData = await statsRes.json();
+
+            setOrganizations(orgsData.organizations || []);
+            setStats(statsData);
         } catch (error) {
-            console.error('Error fetching organizations:', error);
+            console.error('Error fetching dashboard data:', error);
         } finally {
             setLoading(false);
         }
@@ -107,6 +116,87 @@ const AdminDashboard = () => {
                         Nova Organização (AI Setup)
                     </button>
                 </header>
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <Link to="/admin/org" className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex items-center gap-4 group">
+                        <div className="p-4 bg-purple-100 text-purple-600 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                            <Building2 className="w-8 h-8" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900">Organizações</h3>
+                            <p className="text-sm text-gray-500">Gerenciar limites e status</p>
+                        </div>
+                    </Link>
+                    <Link to="/admin/ai" className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex items-center gap-4 group">
+                        <div className="p-4 bg-green-100 text-green-600 rounded-xl group-hover:bg-green-600 group-hover:text-white transition-colors">
+                            <Bot className="w-8 h-8" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900">Inteligência Artificial</h3>
+                            <p className="text-sm text-gray-500">Monitorar custos e modelos</p>
+                        </div>
+                    </Link>
+                    <Link to="/admin/audit" className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex items-center gap-4 group">
+                        <div className="p-4 bg-blue-100 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <Shield className="w-8 h-8" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900">Auditoria</h3>
+                            <p className="text-sm text-gray-500">Logs de segurança</p>
+                        </div>
+                    </Link>
+                </div>
+
+                {/* Stats Overview */}
+                {stats && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-purple-100 text-purple-600 rounded-lg">
+                                    <Building2 className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Organizações</p>
+                                    <h3 className="text-2xl font-bold text-gray-900">{stats.totalOrgs}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-green-100 text-green-600 rounded-lg">
+                                    <CheckCircle className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Ativas</p>
+                                    <h3 className="text-2xl font-bold text-gray-900">{stats.activeOrgs}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+                                    <Users className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Usuários Totais</p>
+                                    <h3 className="text-2xl font-bold text-gray-900">{stats.totalUsers}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-pink-100 text-pink-600 rounded-lg">
+                                    <Bot className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Memórias</p>
+                                    <h3 className="text-2xl font-bold text-gray-900">{stats.totalMemories}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* AI Onboarding Modal */}
                 {showAIOnboarding && (
@@ -196,6 +286,6 @@ const OrganizationCard = ({ org }) => (
     </div>
 );
 
-import { Shield } from 'lucide-react'; // Add missing import
+
 
 export default AdminDashboard;

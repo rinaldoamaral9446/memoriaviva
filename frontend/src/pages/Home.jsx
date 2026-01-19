@@ -15,7 +15,7 @@ const Home = () => {
         try {
             const response = await fetch(`${API_URL}/api/memories`);
             const data = await response.json();
-            setMemories(data);
+            setMemories(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error fetching public memories:', error);
         } finally {

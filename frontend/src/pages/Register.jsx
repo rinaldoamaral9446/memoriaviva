@@ -16,8 +16,10 @@ const Register = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        organizationId: ''
+        organizationId: '',
+        organizationName: ''
     });
+    const [isNewOrg, setIsNewOrg] = useState(false);
     const [errors, setErrors] = useState({});
 
     // Fetch organizations on mount
@@ -27,7 +29,7 @@ const Register = () => {
 
     const fetchOrganizations = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/organizations`);
+            const response = await fetch(`${API_URL}/api/organizations/public`);
             const data = await response.json();
             if (response.ok) {
                 setOrganizations(data.organizations || []);
@@ -65,8 +67,14 @@ const Register = () => {
             newErrors.confirmPassword = 'Senhas não coincidem';
         }
 
-        if (!formData.organizationId) {
-            newErrors.organizationId = 'Selecione uma organização';
+        if (isNewOrg) {
+            if (!formData.organizationName.trim()) {
+                newErrors.organizationName = 'Nome da organização é obrigatório';
+            }
+        } else {
+            if (!formData.organizationId) {
+                newErrors.organizationId = 'Selecione uma organização';
+            }
         }
 
         setErrors(newErrors);
@@ -87,7 +95,8 @@ const Register = () => {
                     name: formData.name,
                     email: formData.email,
                     password: formData.password,
-                    organizationId: parseInt(formData.organizationId)
+                    organizationId: isNewOrg ? null : parseInt(formData.organizationId),
+                    organizationName: isNewOrg ? formData.organizationName : null
                 })
             });
 
@@ -95,7 +104,7 @@ const Register = () => {
 
             if (response.ok) {
                 // Auto-login after registration
-                await login(formData.email, formData.password);
+                await login(data.token, data.user);
                 navigate('/memories');
             } else {
                 setErrors({ general: data.message || 'Erro ao registrar' });
@@ -170,29 +179,56 @@ const Register = () => {
 
                     {/* Organization */}
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Organização *
-                        </label>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-sm font-bold text-gray-700">
+                                Organização *
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setIsNewOrg(!isNewOrg)}
+                                className="text-xs text-brand-purple hover:underline font-medium"
+                            >
+                                {isNewOrg ? 'Selecionar existente' : 'Criar nova organização'}
+                            </button>
+                        </div>
+
                         <div className="relative">
                             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <select
-                                value={formData.organizationId}
-                                onChange={(e) => setFormData({ ...formData, organizationId: e.target.value })}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-purple/50 transition-all ${errors.organizationId ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                            >
-                                <option value="">Selecione uma organização</option>
-                                {organizations.map(org => (
-                                    <option key={org.id} value={org.id}>
-                                        {org.name}
-                                    </option>
-                                ))}
-                            </select>
+
+                            {isNewOrg ? (
+                                <input
+                                    type="text"
+                                    value={formData.organizationName}
+                                    onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-purple/50 transition-all ${errors.organizationName ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                    placeholder="Nome da nova organização"
+                                />
+                            ) : (
+                                <select
+                                    value={formData.organizationId}
+                                    onChange={(e) => setFormData({ ...formData, organizationId: e.target.value })}
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-purple/50 transition-all ${errors.organizationId ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                >
+                                    <option value="">Selecione uma organização</option>
+                                    {organizations.map(org => (
+                                        <option key={org.id} value={org.id}>
+                                            {org.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
-                        {errors.organizationId && <p className="text-red-500 text-sm mt-1">{errors.organizationId}</p>}
+
+                        {isNewOrg ? (
+                            errors.organizationName && <p className="text-red-500 text-sm mt-1">{errors.organizationName}</p>
+                        ) : (
+                            errors.organizationId && <p className="text-red-500 text-sm mt-1">{errors.organizationId}</p>
+                        )}
 
                         {/* Organization Preview */}
-                        {selectedOrg && (
+                        {!isNewOrg && selectedOrg && (
                             <div
                                 className="mt-2 p-3 rounded-lg border-2"
                                 style={{
@@ -206,6 +242,12 @@ const Register = () => {
                                 <p className="text-xs text-gray-600 mt-1">
                                     Você fará parte desta organização
                                 </p>
+                            </div>
+                        )}
+
+                        {isNewOrg && (
+                            <div className="mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
+                                Uma nova organização será criada automaticamente para você.
                             </div>
                         )}
                     </div>

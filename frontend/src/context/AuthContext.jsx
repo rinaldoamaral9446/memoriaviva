@@ -6,16 +6,18 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
     const { setOrganization } = useOrganization();
 
     useEffect(() => {
         const checkUser = async () => {
-            const token = localStorage.getItem('token');
-            if (token) {
+            const storedToken = localStorage.getItem('token');
+            if (storedToken) {
+                setToken(storedToken);
                 try {
                     const response = await fetch(`${API_URL}/api/users/profile`, {
-                        headers: { Authorization: `Bearer ${token}` },
+                        headers: { Authorization: `Bearer ${storedToken}` },
                     });
                     if (response.ok) {
                         const userData = await response.json();
@@ -26,11 +28,15 @@ export const AuthProvider = ({ children }) => {
                         }
                     } else {
                         localStorage.removeItem('token');
+                        setToken(null);
                     }
                 } catch (error) {
                     console.error('Auth check failed', error);
                     localStorage.removeItem('token');
+                    setToken(null);
                 }
+            } else {
+                setToken(null);
             }
             setLoading(false);
         };
@@ -38,8 +44,9 @@ export const AuthProvider = ({ children }) => {
         checkUser();
     }, [setOrganization]);
 
-    const login = (token, userData) => {
-        localStorage.setItem('token', token);
+    const login = (newToken, userData) => {
+        localStorage.setItem('token', newToken);
+        setToken(newToken);
         setUser(userData);
         // Set organization from login response
         if (userData.organization) {
@@ -49,12 +56,13 @@ export const AuthProvider = ({ children }) => {
 
     const logout = () => {
         localStorage.removeItem('token');
+        setToken(null);
         setUser(null);
         setOrganization(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, token, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
-// const { verifyToken } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
+const adminMiddleware = require('../middleware/adminMiddleware');
 const {
     getAllOrganizations,
+    getPublicOrganizations,
     getOrganization,
     getOrganizationBySlug,
     createOrganization,
@@ -11,13 +13,14 @@ const {
 } = require('../controllers/organizationController');
 
 // Public routes
+router.get('/public', getPublicOrganizations);
 router.get('/slug/:slug', getOrganizationBySlug);
 
-// Temporarily without auth
-router.get('/', getAllOrganizations);
-router.get('/:id', getOrganization);
-router.post('/', createOrganization);
-router.put('/:id', updateOrganization);
-router.delete('/:id', deleteOrganization);
+// Protected routes
+router.get('/', authMiddleware, adminMiddleware, getAllOrganizations);
+router.get('/:id', authMiddleware, getOrganization);
+router.post('/', authMiddleware, adminMiddleware, createOrganization);
+router.put('/:id', authMiddleware, adminMiddleware, updateOrganization);
+router.delete('/:id', authMiddleware, adminMiddleware, deleteOrganization);
 
 module.exports = router;

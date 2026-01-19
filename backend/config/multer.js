@@ -13,8 +13,22 @@ const storage = new CloudinaryStorage({
     },
 });
 
-// Configure Memory Storage (for AI processing - needs buffer)
-const memoryStorage = multer.memoryStorage();
+// Configure Disk Storage (for AI processing - prevents RAM exhaustion)
+const diskStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const fs = require('fs');
+        const path = require('path');
+        const tempDir = path.join(__dirname, '..', 'temp');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+        cb(null, tempDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname);
+    }
+});
 
 // File filter for images, audio, and documents
 const fileFilter = (req, file, cb) => {
@@ -38,7 +52,7 @@ const uploadCloudinary = multer({
 });
 
 const uploadMemory = multer({
-    storage: memoryStorage,
+    storage: diskStorage, // Changed from memoryStorage to diskStorage
     limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for large audio files
     fileFilter: fileFilter
 });

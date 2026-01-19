@@ -15,6 +15,13 @@ import KidsPage from './pages/KidsPage';
 import StudioPage from './pages/StudioPage';
 import AdminDashboard from './pages/AdminDashboard';
 import OrgManagement from './pages/OrgManagement';
+import RoleManagement from './pages/admin/RoleManagement';
+import OrgList from './pages/admin/OrgList';
+import AiSettings from './pages/admin/AiSettings';
+import AuditLogs from './pages/admin/AuditLogs';
+import EventCalendar from './pages/events/EventCalendar';
+import FinancialReports from './pages/admin/FinancialReports';
+import SocialDashboard from './pages/social/SocialDashboard';
 import Home from './pages/Home';
 
 function App() {
@@ -46,6 +53,14 @@ function App() {
               />
               <Route
                 path="marketplace"
+                element={
+                  <ProtectedRoute>
+                    <AgentMarketplace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="agents"
                 element={
                   <ProtectedRoute>
                     <AgentMarketplace />
@@ -101,10 +116,68 @@ function App() {
                 }
               />
               <Route
-                path="admin/org"
+                path="admin/team"
                 element={
                   <ProtectedRoute>
                     <OrgManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/roles"
+                element={
+                  <ProtectedRoute>
+                    <RoleManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/org"
+                element={
+                  <ProtectedRoute>
+                    <OrgList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/ai"
+                element={
+                  <ProtectedRoute>
+                    <AiSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/finance"
+                element={
+                  <ProtectedRoute>
+                    <FinancialReports />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/audit"
+                element={
+                  <ProtectedRoute>
+                    <AuditLogs />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="events"
+                element={
+                  <ProtectedRoute>
+                    <EventCalendar />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="social"
+                element={
+                  <ProtectedRoute>
+                    <SocialDashboard />
                   </ProtectedRoute>
                 }
               />

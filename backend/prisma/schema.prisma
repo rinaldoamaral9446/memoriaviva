@@ -11,12 +11,24 @@ model Organization {
   secondaryColor String    @default("#D4AF37") // Gold
   config         String?   // JSON: { aiInstructions, features, etc }
   isActive       Boolean   @default(true)
+  
+  // Limits and Quotas
+  storageLimit   Int       @default(5) // GB
+  userLimit      Int       @default(10)
+  aiTokenLimit   Int       @default(100000) // Monthly limit
+  
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  
+  expenses       Expense[]
 
   users          User[]
   memories       Memory[]
   aiLogs         AiLog[]
+  auditLogs      AuditLog[]
+  aiUsages       AiUsage[]
+  roles          Role[]
+  agents         Agent[]
 }
 
 model AiLog {
@@ -28,6 +40,37 @@ model AiLog {
   organization   Organization @relation(fields: [organizationId], references: [id])
   userId         Int?
   createdAt      DateTime     @default(now())
+}
+
+model AuditLog {
+  id             Int          @id @default(autoincrement())
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  userId         Int?
+  action         String       // "CREATE_USER", "DELETE_MEMORY", "SUSPEND_ORG"
+  details        String?      // JSON details
+  ipAddress      String?
+  createdAt      DateTime     @default(now())
+}
+
+model AiUsage {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  date           DateTime     @default(now()) // YYYY-MM-DD
+  tokensUsed     Int          @default(0)
+  cost           Float        @default(0.0)
+  model          String       // "gemini-pro"
+  
+  @@unique([organizationId, date, model])
+}
+
+model SystemSettings {
+  id             Int       @id @default(autoincrement())
+  key            String    @unique // "global_ai_model", "maintenance_mode"
+  value          String    // JSON value
+  description    String?
+  updatedAt      DateTime  @updatedAt
 }
 
 generator client {
@@ -46,10 +89,28 @@ model User {
   name           String
   email          String       @unique
   password       String
-  role           String       @default("user") // "admin", "editor", "user"
+  role           String       @default("user") // Deprecated: keeping for backward compatibility during migration
+  roleId         Int?         // New dynamic role relation
+  userRole       Role?        @relation(fields: [roleId], references: [id])
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   memories       Memory[]
+}
+
+model Role {
+  id             Int          @id @default(autoincrement())
+  name           String       // "Admin", "Editor", "Fotógrafo"
+  description    String?
+  slug           String       // "admin", "editor" - unique per organization
+  permissions    String       // JSON: { "memories": ["create", "read"], "users": [] }
+  isSystem       Boolean      @default(false) // Cannot be deleted
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users          User[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, slug])
 }
 
 model Memory {
@@ -62,6 +123,9 @@ model Memory {
   description    String?
   content        String
   eventDate      DateTime?
+  isEvent        Boolean      @default(false)
+  ticketPrice    Float?
+  capacity       Int?
   location       String?
   category       String?
   tags           String?      // JSON array of tags
@@ -73,4 +137,57 @@ model Memory {
   aiGenerated    Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  
+  expenses       Expense[]
+  
+  eventId        Int?
+  event          Memory?  @relation("EventMemories", fields: [eventId], references: [id])
+  relatedMemories Memory[] @relation("EventMemories")
+}
+
+model Expense {
+  id             Int      @id @default(autoincrement())
+  description    String
+  amount         Float
+  date           DateTime
+  category       String   // "Equipment", "Personnel", "Marketing"
+  
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  memoryId       Int?
+  memory         Memory?  @relation(fields: [memoryId], references: [id])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Agent {
+  id             Int          @id @default(autoincrement())
+  
+  // Multi-tenancy Isolation
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Descobertas e Metadados Visuais
+  name           String       // "Roberto"
+  role           String       // "Consultor"
+  description    String       // Texto curto para o card
+  avatarUrl      String?      // URL de imagem (opcional)
+
+  // [NEW] Customização de UI
+  icon           String       @default("Bot") // Nome do ícone Lucide: "Bot", "Briefcase", "GraduationCap"
+  color          String       @default("blue-600") // Classe de cor do Tailwind: "blue-600", "pink-600"
+
+  // [NEW] Visibilidade
+  isGlobal       Boolean      @default(false) // Se true, aparece para TODAS as organizações
+  isActive       Boolean      @default(true)
+  
+  // The Brain
+  systemPrompt   String       @default("") // The "brain" of the agent
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
 }

@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
-import { Users, Shield, Trash2, Edit2, Plus, Check } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, MoreVertical, Shield, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { API_URL } from '../config/api';
 
 const OrgManagement = () => {
@@ -102,13 +104,22 @@ const OrgManagement = () => {
                         </h1>
                         <p className="text-gray-600">Gerencie os membros da sua organização</p>
                     </div>
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700 transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Novo Usuário
-                    </button>
+                    <div className="flex gap-3">
+                        <Link
+                            to="/admin/roles"
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            <Shield className="w-5 h-5" />
+                            Gerenciar Perfis
+                        </Link>
+                        <button
+                            onClick={() => setShowAddModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                            <UserPlus className="w-5 h-5" />
+                            Adicionar Membro
+                        </button>
+                    </div>
                 </header>
 
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -132,11 +143,12 @@ const OrgManagement = () => {
                                             value={user.role}
                                             onChange={(e) => handleRoleUpdate(user.id, e.target.value)}
                                             className={`
-                                                px-2 py-1 rounded-full text-xs font-semibold border-0 cursor-pointer
+px - 2 py - 1 rounded - full text - xs font - semibold border - 0 cursor - pointer
                                                 ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
                                                     user.role === 'editor' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-gray-100 text-gray-700'}
-                                            `}
+                                                        'bg-gray-100 text-gray-700'
+                                                }
+`}
                                         >
                                             <option value="user">Usuário</option>
                                             <option value="editor">Editor</option>

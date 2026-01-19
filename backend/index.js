@@ -12,6 +12,11 @@ const aiRoutes = require('./routes/aiRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const roleRoutes = require('./routes/roleRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const eventRoutes = require('./routes/eventRoutes');
+const auditRoutes = require('./routes/auditRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 // Middleware
 const corsOptions = {
@@ -32,6 +37,15 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/events', eventRoutes); // Registered event routes
+app.use('/api/expenses', require('./routes/expenseRoutes')); // Registered expense routes
+app.use('/api/social', require('./routes/socialRoutes')); // Registered social routes
+app.use('/api/audit', auditRoutes); // Registered audit routes
+app.use('/api/settings', settingsRoutes); // Registered settings routes
+app.use('/api/agents', require('./routes/agentRoutes')); // New Agent Management Routes
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });

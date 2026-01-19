@@ -1,6 +1,8 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { PrismaClient } = require('@prisma/client');
 const PromptService = require('../services/promptService');
+const fs = require('fs');
+const path = require('path');
 
 const prisma = new PrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
@@ -14,50 +16,29 @@ exports.processMemoryInput = async (req, res) => {
 
         // Log received file info
         if (file) {
-            console.log(`📁 Received file: ${file.originalname} (${file.mimetype}, ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+            // console.log(`📁 Received file: ${file.originalname} (${file.mimetype}, ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
         }
 
-        // Save file to Cloudinary if present (only images, skip audio)
+        // Save file to Cloudinary if present (only images/docs, skip audio)
         if (file) {
             const cloudinary = require('../config/cloudinary');
-            const streamifier = require('streamifier');
 
             // Determine if it's an audio file
             const isAudio = file.mimetype.startsWith('audio/');
 
             // Upload images and documents to Cloudinary, skip audio (Gemini can process directly)
             if (!isAudio) {
-                // Upload from buffer
-                const uploadFromBuffer = (buffer) => {
-                    return new Promise((resolve, reject) => {
-                        const cld_upload_stream = cloudinary.uploader.upload_stream(
-                            {
-                                folder: "memoria-viva",
-                                resource_type: 'auto' // Auto-detect (image/raw)
-                            },
-                            (error, result) => {
-                                if (result) {
-                                    resolve(result);
-                                } else {
-                                    reject(error);
-                                }
-                            }
-                        );
-                        streamifier.createReadStream(buffer).pipe(cld_upload_stream);
-                    });
-                };
-
                 try {
-                    const result = await uploadFromBuffer(file.buffer);
+                    // Upload from path
+                    const result = await cloudinary.uploader.upload(file.path, {
+                        folder: "memoria-viva",
+                        resource_type: 'auto'
+                    });
+
                     // Check if it's an image or document
                     if (result.resource_type === 'image') {
                         imageUrl = result.secure_url;
                     } else {
-                        // For PDFs/Docs, Cloudinary might return 'raw' or 'image' (for PDFs sometimes)
-                        // We'll treat anything not strictly an image as a document URL if needed, 
-                        // but for now let's store it in a generic way or separate variable
-                        // Ideally we want separate fields, but let's see how we handle it.
-                        // We'll assign to a new variable documentUrl
                         req.documentUrl = result.secure_url;
                     }
                 } catch (error) {
@@ -65,9 +46,8 @@ exports.processMemoryInput = async (req, res) => {
                     // Continue without image if upload fails
                 }
             } else {
-                console.log('🎵 Audio file detected, will process with Gemini (no Cloudinary upload)');
+                // console.log('🎵 Audio file detected, will process with Gemini (no Cloudinary upload)');
             }
-            // If it's audio, we'll just process it with Gemini, no URL to save
         }
 
         // Check if key is missing or is the placeholder
@@ -114,7 +94,6 @@ exports.processMemoryInput = async (req, res) => {
         const systemPrompt = PromptService.buildMemoryPrompt(textInput, organizationInstructions, organizationGuardrails);
         promptParts.push(systemPrompt);
 
-        // Add media if present (image or audio)
         // Add media if present (image, audio, or document)
         if (file) {
             const fileSizeMB = file.size / 1024 / 1024;
@@ -125,32 +104,19 @@ exports.processMemoryInput = async (req, res) => {
 
             // For audio files > 5MB or PDFs, use Files API
             if ((isAudio && fileSizeMB > 5) || isPDF) {
-                console.log(`📄 Large file or PDF (${fileSizeMB.toFixed(2)}MB), using Files API...`);
+                // console.log(`📄 Large file or PDF (${fileSizeMB.toFixed(2)}MB), using Files API...`);
 
                 try {
                     const { GoogleAIFileManager } = require('@google/generative-ai/server');
                     const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
-                    // Write buffer to temp file
-                    const fs = require('fs');
-                    const path = require('path');
-                    const tempPath = path.join(__dirname, '..', 'temp', `upload_${Date.now()}.${file.originalname.split('.').pop()}`);
-
-                    // Ensure temp directory exists
-                    const tempDir = path.dirname(tempPath);
-                    if (!fs.existsSync(tempDir)) {
-                        fs.mkdirSync(tempDir, { recursive: true });
-                    }
-
-                    fs.writeFileSync(tempPath, file.buffer);
-
-                    // Upload to Gemini Files API
-                    const uploadResult = await fileManager.uploadFile(tempPath, {
+                    // Upload to Gemini Files API from existing temp file
+                    const uploadResult = await fileManager.uploadFile(file.path, {
                         mimeType: file.mimetype,
                         displayName: file.originalname
                     });
 
-                    console.log(`✅ Uploaded to Files API: ${uploadResult.file.uri}`);
+                    // console.log(`✅ Uploaded to Files API: ${uploadResult.file.uri}`);
 
                     // Add file reference to prompt
                     promptParts.push({
@@ -160,20 +126,17 @@ exports.processMemoryInput = async (req, res) => {
                         }
                     });
 
-                    // Clean up temp file
-                    fs.unlinkSync(tempPath);
-
                 } catch (error) {
                     console.error('❌ Files API upload failed, falling back to inline/text:', error.message);
-                    // Fallback logic could go here, but for PDF/Audio > 20MB inline isn't an option usually
                 }
             } else if (isWord) {
                 // Extract text from Word document
                 try {
                     const mammoth = require('mammoth');
-                    const result = await mammoth.extractRawText({ buffer: file.buffer });
+                    // Read from path
+                    const result = await mammoth.extractRawText({ path: file.path });
                     const text = result.value;
-                    console.log(`📝 Extracted ${text.length} chars from Word doc`);
+                    // console.log(`📝 Extracted ${text.length} chars from Word doc`);
 
                     promptParts.push({
                         text: `\n\n[DOCUMENT CONTENT START]\n${text}\n[DOCUMENT CONTENT END]\n\n`
@@ -183,16 +146,18 @@ exports.processMemoryInput = async (req, res) => {
                 }
             } else if (isText) {
                 // Read text file directly
-                const text = file.buffer.toString('utf-8');
-                console.log(`📝 Read ${text.length} chars from Text file`);
+                const text = fs.readFileSync(file.path, 'utf-8');
+                // console.log(`📝 Read ${text.length} chars from Text file`);
                 promptParts.push({
                     text: `\n\n[DOCUMENT CONTENT START]\n${text}\n[DOCUMENT CONTENT END]\n\n`
                 });
             } else {
                 // Use inline for small files or images
+                // Read file from disk to buffer for inline data
+                const fileBuffer = fs.readFileSync(file.path);
                 promptParts.push({
                     inlineData: {
-                        data: file.buffer.toString('base64'),
+                        data: fileBuffer.toString('base64'),
                         mimeType: file.mimetype
                     }
                 });
@@ -200,58 +165,79 @@ exports.processMemoryInput = async (req, res) => {
         }
 
         // Debug log: Check prompt structure before sending
-        console.log('🚀 Sending to Gemini:', {
-            model: 'gemini-2.0-flash',
+        // console.log('🚀 Sending to Gemini:', {
+        model: 'gemini-2.0-flash',
             promptPartsCount: promptParts.length,
-            hasInlineData: !!promptParts.find(p => p.inlineData),
-            hasFileData: !!promptParts.find(p => p.fileData),
-            inlineMimeType: promptParts.find(p => p.inlineData)?.inlineData?.mimeType,
-            fileMimeType: promptParts.find(p => p.fileData)?.fileData?.mimeType
-        });
+                hasInlineData: !!promptParts.find(p => p.inlineData),
+                    hasFileData: !!promptParts.find(p => p.fileData),
+                        inlineMimeType: promptParts.find(p => p.inlineData)?.inlineData?.mimeType,
+                            fileMimeType: promptParts.find(p => p.fileData)?.fileData?.mimeType
+    });
 
-        let result;
-        try {
-            result = await model.generateContent(promptParts);
-        } catch (geminiError) {
-            console.error('❌ Gemini API Error Details:', JSON.stringify(geminiError, null, 2));
-            console.error('❌ Gemini Error Message:', geminiError.message);
-            throw geminiError; // Re-throw to be caught by outer block
-        }
-        const response = await result.response;
-        const text = response.text();
-
-        // Clean up markdown code blocks if present
-        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        const structuredData = JSON.parse(jsonStr);
-
-        // Add the media URLs to the response
-        if (imageUrl) {
-            structuredData.imageUrl = imageUrl;
-        }
-        if (audioUrl) {
-            structuredData.audioUrl = audioUrl;
-        }
-        if (req.documentUrl) {
-            structuredData.documentUrl = req.documentUrl;
-        }
-
-        // 🎨 Auto-generate cover image if no image provided (audio-only memory)
-        if (!imageUrl && (audioUrl || file?.mimetype.startsWith('audio/'))) {
-            console.log('🎨 No image provided, generating AI cover image...');
-            const ImageGenerationService = require('../services/imageGenerationService');
-            const generatedImageUrl = await ImageGenerationService.generateMemoryImage(structuredData);
-
-            if (generatedImageUrl) {
-                structuredData.imageUrl = generatedImageUrl;
-                console.log('✅ AI-generated cover image added');
-            }
-        }
-
-        res.json(structuredData);
-    } catch (error) {
-        console.error('AI Processing Error:', error);
-        res.status(500).json({ message: 'Error processing content', error: error.message });
+    let result;
+    try {
+        result = await model.generateContent(promptParts);
+    } catch (geminiError) {
+        console.error('❌ Gemini API Error Details:', JSON.stringify(geminiError, null, 2));
+        console.error('❌ Gemini Error Message:', geminiError.message);
+        throw geminiError; // Re-throw to be caught by outer block
     }
+    const response = await result.response;
+    const text = response.text();
+
+    // Clean up markdown code blocks if present
+    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const structuredData = JSON.parse(jsonStr);
+
+    // Add the media URLs to the response
+    if (imageUrl) {
+        structuredData.imageUrl = imageUrl;
+    }
+    if (audioUrl) {
+        structuredData.audioUrl = audioUrl;
+    }
+    if (req.documentUrl) {
+        structuredData.documentUrl = req.documentUrl;
+    }
+
+    // 🎨 Auto-generate cover image if no image provided (audio-only memory)
+    if (!imageUrl && (audioUrl || file?.mimetype.startsWith('audio/'))) {
+        // console.log('🎨 No image provided, generating AI cover image...');
+        const ImageGenerationService = require('../services/imageGenerationService');
+        const generatedImageUrl = await ImageGenerationService.generateMemoryImage(structuredData);
+
+        if (generatedImageUrl) {
+            structuredData.imageUrl = generatedImageUrl;
+            // console.log('✅ AI-generated cover image added');
+        }
+    }
+
+    // Cleanup temp file
+    if (req.file && req.file.path) {
+        try {
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+                // console.log(`🧹 Cleaned up temp file: ${req.file.path}`);
+            }
+        } catch (cleanupError) {
+            console.error('Error cleaning up temp file:', cleanupError);
+        }
+    }
+
+    res.json(structuredData);
+} catch (error) {
+    // Cleanup temp file on error too
+    if (req.file && req.file.path) {
+        try {
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+        } catch (cleanupError) { }
+    }
+
+    console.error('AI Processing Error:', error);
+    res.status(500).json({ message: 'Error processing content', error: error.message });
+}
 };
 
 exports.optimizeInstructions = async (req, res) => {
@@ -325,28 +311,48 @@ exports.curateMemories = async (req, res) => {
 exports.chatWithAgent = async (req, res) => {
     try {
         const { message, agentId } = req.body;
+        const organizationId = req.user.organizationId; // Auth middleware required
 
         // Check if key is missing or is the placeholder
         if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
             return res.json({
-                response: "Olá! Sou o Roberto. Parece que estou sem minha chave de API hoje, mas adoraria te vender um plano Enterprise assim que eu estiver online!",
-                audioUrl: null // Future: Generate audio file
+                response: "Olá! Sou um Agente (Simulado). As chaves de API do Gemini não estão configuradas corretamente no servidor.",
+                audioUrl: null
             });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        const chat = model.startChat({
-            history: [
-                {
-                    role: "user",
-                    parts: [{ text: "System Prompt: Você é o Roberto, um vendedor sênior da plataforma Memória Cultural Viva. Seu objetivo é vender o plano Enterprise para prefeituras e escolas. Você é carismático, persuasivo e usa gírias corporativas leves. Fale de forma curta e direta, como numa chamada telefônica. Nunca saia do personagem." }],
-                },
-                {
-                    role: "model",
-                    parts: [{ text: "Alô? Aqui é o Roberto da Memória Viva! Tudo bom? Vi que você tá explorando nossa plataforma. Já pensou em levar essa tecnologia pra todas as escolas da sua rede?" }],
-                },
-            ],
+        // 1. Fetch Agent from DB
+        const agent = await prisma.agent.findFirst({
+            where: {
+                id: parseInt(agentId),
+                isActive: true,
+                OR: [
+                    { organizationId: organizationId },
+                    { isGlobal: true }
+                ]
+            }
         });
+
+        if (!agent) {
+            return res.status(404).json({ message: 'Agent not found or not accessible.' });
+        }
+
+        // 2. Build History with Dynamic System Prompt
+        const history = [
+            {
+                role: "user",
+                parts: [{ text: `System Prompt: ${agent.systemPrompt}` }],
+            },
+            {
+                role: "model",
+                parts: [{ text: `Entendido. Atuarei como ${agent.name}.` }],
+            }
+        ];
+
+        // Future: If we want to persist chat history per session -> fetch from DB here
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const chat = model.startChat({ history });
 
         const result = await chat.sendMessage(message);
         const response = await result.response;

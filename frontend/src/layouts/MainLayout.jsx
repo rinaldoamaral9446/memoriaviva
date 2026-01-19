@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../context/OrganizationContext';
-import { LogOut, User, Home, BookOpen, Menu, X, Building2, GraduationCap, BarChart3, Gamepad2, Film, Shield, Users } from 'lucide-react';
+import { LogOut, User, Home, BookOpen, Menu, X, Building2, GraduationCap, BarChart3, Gamepad2, Film, Shield, Users, Calendar, Share2, Bot } from 'lucide-react';
 
 const MainLayout = () => {
     const { user, logout } = useAuth();
@@ -29,7 +29,7 @@ const MainLayout = () => {
                                 <div
                                     className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
                                     style={{
-                                        background: `linear - gradient(135deg, ${branding.primaryColor} 0 %, ${branding.secondaryColor} 100 %)`
+                                        background: `linear-gradient(135deg, ${branding.primaryColor}0%, ${branding.secondaryColor}100%)`
                                     }}
                                 >
                                     <span className="text-white font-serif font-bold text-xl">{branding.name.charAt(0)}</span>
@@ -56,7 +56,7 @@ const MainLayout = () => {
                         <div className="hidden md:flex items-center space-x-8">
                             <Link
                                 to="/"
-                                className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
+                                className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
                             >
                                 <Home className="w-4 h-4" />
                                 Início
@@ -65,11 +65,32 @@ const MainLayout = () => {
                             {user ? (
                                 <>
                                     <Link
+                                        to="/events"
+                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/events') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                    >
+                                        <Calendar className="w-4 h-4" />
+                                        Agenda
+                                    </Link>
+                                    <Link
+                                        to="/social"
+                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/social') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                    >
+                                        <Share2 className="w-4 h-4" />
+                                        Social
+                                    </Link>
+                                    <Link
                                         to="/memories"
-                                        className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/memories') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
+                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/memories') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
                                     >
                                         <BookOpen className="w-4 h-4" />
                                         Minhas Memórias
+                                    </Link>
+                                    <Link
+                                        to="/agents"
+                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/agents') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                    >
+                                        <Bot className="w-4 h-4" />
+                                        Agentes
                                     </Link>
                                     <Link
                                         to="/educator"
@@ -102,17 +123,26 @@ const MainLayout = () => {
 
                                     {/* Management Links */}
                                     {user?.role === 'admin' && (
-                                        <Link
-                                            to="/admin/org"
-                                            className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/org') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                        >
-                                            <Users className="w-4 h-4" />
-                                            Equipe
-                                        </Link>
+                                        <>
+                                            <Link
+                                                to="/admin/team"
+                                                className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/team') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                            >
+                                                <Users className="w-4 h-4" />
+                                                Equipe
+                                            </Link>
+                                            <Link
+                                                to="/admin/finance"
+                                                className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/finance') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
+                                            >
+                                                <BarChart3 className="w-4 h-4" />
+                                                Financeiro
+                                            </Link>
+                                        </>
                                     )}
 
-                                    {/* Super Admin Link (assuming role 'super_admin' or specific email for now) */}
-                                    {user?.email === 'admin@demo.com' && (
+                                    {/* Super Admin Link */}
+                                    {user?.role === 'super_admin' && (
                                         <Link
                                             to="/admin/super"
                                             className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/super') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
@@ -189,6 +219,13 @@ const MainLayout = () => {
                                         Minhas Memórias
                                     </Link>
                                     <Link
+                                        to="/agents"
+                                        className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Agentes
+                                    </Link>
+                                    <Link
                                         to="/educator"
                                         className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
                                         onClick={() => setIsMenuOpen(false)}
@@ -235,6 +272,25 @@ const MainLayout = () => {
             {/* Content Spacer for Fixed Navbar */}
             <div className="h-20"></div>
 
+            {/* Impersonation Banner */}
+            {
+                sessionStorage.getItem('superAdminToken') && (
+                    <div className="bg-red-600 text-white p-2 text-center text-sm font-bold flex items-center justify-center gap-4">
+                        <span>⚠️ Você está acessando como {user?.name} ({organization?.name})</span>
+                        <button
+                            onClick={() => {
+                                localStorage.setItem('token', sessionStorage.getItem('superAdminToken'));
+                                sessionStorage.removeItem('superAdminToken');
+                                window.location.href = '/admin/super';
+                            }}
+                            className="bg-white text-red-600 px-3 py-1 rounded-full text-xs hover:bg-gray-100"
+                        >
+                            Sair do Modo de Acesso
+                        </button>
+                    </div>
+                )
+            }
+
             {/* Main Content */}
             <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
                 <Outlet />
@@ -248,7 +304,7 @@ const MainLayout = () => {
                     </p>
                 </div>
             </footer>
-        </div>
+        </div >
     );
 };
 

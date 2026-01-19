@@ -10,12 +10,15 @@ exports.buildMemoryPrompt = (textInput, orgInstructions, guardrails) => {
         Se houver uma imagem, descreva detalhadamente os elementos visuais, roupas, cenário e emoções.
         Use essas informações visuais para gerar tags precisas.
 
-        Retorne APENAS um objeto JSON com os seguintes campos:
-        - title: Um título curto e descritivo.
-        - description: Uma descrição detalhada e narrativa do que é visto na imagem ou ouvido no áudio, combinada com o contexto do usuário.
+        Retorne APENAS um objeto JSON válido.
+        IMPORTANTE: Todos os textos (title, description, tags, location) DEVEM estar estritamente em PORTUGUÊS DO BRASIL.
+        
+        Campos do JSON:
+        - title: Um título curto e descritivo em Português.
+        - description: Uma descrição detalhada e narrativa em Português do que é visto na imagem ou ouvido no áudio, combinada com o contexto do usuário.
         - date: A data mencionada ou estimada (YYYY-MM-DD). Use a data de hoje se não for possível estimar.
         - location: O local mencionado ou identificado visualmente (ou null).
-        - tags: Uma lista de 5 a 8 tags relevantes (incluindo elementos visuais detectados).
+        - tags: Uma lista de 5 a 8 tags relevantes em Português (incluindo elementos visuais detectados).
     `;
     return prompt;
 };
