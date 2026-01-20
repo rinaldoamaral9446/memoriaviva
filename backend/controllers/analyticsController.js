@@ -52,13 +52,33 @@ exports.generateReport = async (req, res) => {
             };
         }).sort((a, b) => b.memoriesCount - a.memoriesCount);
 
-        // 3. Mock AI Summary (In production, call Gemini here)
-        const totalMemories = unitsData.reduce((acc, u) => acc + u.memoriesCount, 0);
-        const aiSummary = `Neste mês, a rede ${organization.name} demonstrou um avanço significativo na documentação do patrimônio imaterial. Com ${totalMemories} novas memórias registradas, observa-se um alinhamento forte com a competência 3 da BNCC (Repertório Cultural). As escolas G. Ramos e Z. Lima lideraram a produção de conteúdo pedagógico.`;
+        // 3. AI Summary (Gemini)
+        let aiSummary = '';
+        try {
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        // 4. Mock Audit Logs
+            const totalMemories = unitsData.reduce((acc, u) => acc + u.memoriesCount, 0);
+            const totalPlans = unitsData.reduce((acc, u) => acc + u.plansCount, 0);
+
+            const prompt = `Analise os dados de impacto da rede ${organization.name} este mês e escreva um resumo executivo de 1 parágrafo (max 50 palavras) focado no impacto pedagógico e alinhamento com a BNCC.
+            Dados: ${totalMemories} memórias coletadas, ${totalPlans} planos de aula gerados.
+            Destaques por unidade: ${JSON.stringify(unitsData.slice(0, 3).map(u => `${u.name} (${u.memoriesCount} memórias)`))}.
+            Tom: Formal, inspirador e focado em preservação cultural.`;
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            aiSummary = response.text();
+        } catch (error) {
+            console.error('Gemini Summary Error:', error);
+            aiSummary = `Neste mês, a rede ${organization.name} demonstrou um avanço significativo na documentação do patrimônio imaterial, fortalecendo a identidade cultural e o alinhamento com a BNCC.`;
+        }
+
+        // 4. Mock Audit Logs (Mantendo estático por enquanto)
+        const totalMemoriesLog = unitsData.reduce((acc, u) => acc + u.memoriesCount, 0);
         const auditLogs = [
-            `Total de ${totalMemories} memórias processadas com segurança.`,
+            `Total de ${totalMemoriesLog} memórias processadas com segurança.`,
             "100% de conformidade com diretrizes de privacidade.",
             "Nenhum incidente de segurança registrado no período."
         ];
