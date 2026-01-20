@@ -78,6 +78,34 @@ const SemedDashboard = () => {
         );
     }
 
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
+    const handleGenerateReport = async () => {
+        setIsGeneratingReport(true);
+        try {
+            const response = await fetch('http://localhost:5000/api/analytics/report', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error('Erro ao gerar relatório');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio_impacto_${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+        } catch (error) {
+            console.error('Download Error:', error);
+            alert('Falha ao baixar relatório.');
+        } finally {
+            setIsGeneratingReport(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50/50 p-6 md:p-10">
             <header className="mb-10">
@@ -133,9 +161,17 @@ const SemedDashboard = () => {
                     <div className="space-y-4">
                         <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
                             <h3 className="font-semibold text-blue-900 mb-1">Exportar Relatório</h3>
-                            <p className="text-sm text-blue-700 mb-3">Baixe os dados completos em CSV.</p>
-                            <button className="w-full py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
-                                Em Breve
+                            <p className="text-sm text-blue-700 mb-3">Baixe os dados completos em PDF.</p>
+                            <button
+                                onClick={handleGenerateReport}
+                                disabled={isGeneratingReport}
+                                className="w-full py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {isGeneratingReport ? (
+                                    <><Loader className="w-4 h-4 animate-spin" /> Gerando PDF...</>
+                                ) : (
+                                    <>✨ Gerar Relatório Mensal</>
+                                )}
                             </button>
                         </div>
 

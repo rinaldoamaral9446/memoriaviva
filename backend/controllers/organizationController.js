@@ -123,6 +123,8 @@ const getOrganizationBySlug = async (req, res) => {
     }
 };
 
+const bcrypt = require('bcryptjs'); // Ensure bcrypt is required at the top if not already
+
 // Create organization (admin only)
 const createOrganization = async (req, res) => {
     try {
@@ -142,19 +144,38 @@ const createOrganization = async (req, res) => {
             return res.status(400).json({ error: 'Organization with this slug already exists' });
         }
 
-        const organization = await prisma.organization.create({
-            data: {
-                name,
-                slug,
-                domain,
-                logo,
-                primaryColor: primaryColor || '#4B0082',
-                secondaryColor: secondaryColor || '#D4AF37',
-                config: config ? JSON.stringify(config) : null
-            }
+        // Use transaction to ensure Org + Admin User are created together
+        const result = await prisma.$transaction(async (prisma) => {
+            const organization = await prisma.organization.create({
+                data: {
+                    name,
+                    slug,
+                    domain,
+                    logo,
+                    primaryColor: primaryColor || '#4B0082',
+                    secondaryColor: secondaryColor || '#D4AF37',
+                    config: config ? JSON.stringify(config) : null
+                }
+            });
+
+            // Create default admin user
+            const hashedPassword = await bcrypt.hash('senha123', 10);
+            const defaultEmail = `admin@${slug}.memoriaviva.com.br`;
+
+            await prisma.user.create({
+                data: {
+                    name: 'Administrador Local',
+                    email: defaultEmail,
+                    password: hashedPassword,
+                    role: 'admin',
+                    organizationId: organization.id
+                }
+            });
+
+            return organization;
         });
 
-        res.status(201).json({ organization, message: 'Organization created successfully' });
+        res.status(201).json({ organization: result, message: 'Organization created successfully' });
     } catch (error) {
         console.error('Error creating organization:', error);
         res.status(500).json({ error: 'Failed to create organization' });
@@ -209,6 +230,26 @@ const deleteOrganization = async (req, res) => {
     }
 };
 
+// Update Only Config (Specialized for Super Admin Prompts)
+const updateOrganizationConfig = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const configData = req.body; // Expects JSON object directly
+
+        const organization = await prisma.organization.update({
+            where: { id: parseInt(id) },
+            data: {
+                config: JSON.stringify(configData)
+            }
+        });
+
+        res.json({ organization, message: 'Configuration updated successfully' });
+    } catch (error) {
+        console.error('Error updating organization config:', error);
+        res.status(500).json({ error: 'Failed to update configuration' });
+    }
+};
+
 module.exports = {
     getAllOrganizations,
     getPublicOrganizations,
@@ -216,5 +257,6 @@ module.exports = {
     getOrganizationBySlug,
     createOrganization,
     updateOrganization,
+    updateOrganizationConfig,
     deleteOrganization
 };

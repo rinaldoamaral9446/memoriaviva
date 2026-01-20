@@ -1,25 +1,46 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const logAction = async (userId, organizationId, action, details, req) => {
+/**
+ * Log an audit action
+ * @param {Object} params
+ * @param {number} params.organizationId
+ * @param {number} [params.userId]
+ * @param {string} params.action - e.g. "UPDATE_DNA", "CREATE_UNIT"
+ * @param {string|Object} [params.details] - JSON string or object
+ */
+exports.logAction = async ({ organizationId, userId, action, details }) => {
     try {
-        const ipAddress = req ? (req.headers['x-forwarded-for'] || req.socket.remoteAddress) : null;
+        const detailsString = typeof details === 'object' ? JSON.stringify(details) : details;
 
         await prisma.auditLog.create({
             data: {
-                userId,
                 organizationId,
+                userId,
                 action,
-                details: typeof details === 'string' ? details : JSON.stringify(details),
-                ipAddress
+                details: detailsString
             }
         });
     } catch (error) {
-        console.error('Failed to create audit log:', error);
-        // Don't throw, we don't want to block the main action if logging fails
+        console.error('Failed to write audit log:', error);
+        // We do not throw here to prevent breaking the main flow
     }
 };
 
-module.exports = {
-    logAction
+/**
+ * Get logs for an organization
+ * @param {number} organizationId
+ * @param {number} [limit=20]
+ */
+exports.getLogs = async (organizationId, limit = 20) => {
+    return prisma.auditLog.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        include: {
+            // Ideally we get user name, but 'user' relation is optional in schema
+            // If schema allows relation:
+            // user: { select: { name: true, email: true } }
+        }
+    });
 };

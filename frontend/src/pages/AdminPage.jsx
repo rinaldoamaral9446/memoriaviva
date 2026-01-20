@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOrganization } from '../context/OrganizationContext';
-import { Save, Loader2, Building2, Palette, Sparkles } from 'lucide-react';
+import { Save, Loader2, Building2, Palette, Sparkles, Users, School } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const AdminPage = () => {
     const { organization, branding, updateOrganization } = useOrganization();
@@ -96,6 +97,29 @@ const AdminPage = () => {
                     Administração da Organização
                 </h1>
                 <p className="text-gray-600 mt-2">Personalize a experiência da {organization.name}.</p>
+            </div>
+
+            {/* Navigation Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <Link to="/admin/team" className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 group">
+                    <div className="p-4 bg-purple-100 text-purple-600 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                        <Users className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg text-gray-900 group-hover:text-purple-700 transition-colors">Gestão de Equipe</h3>
+                        <p className="text-sm text-gray-500">Adicionar membros e gerenciar acessos</p>
+                    </div>
+                </Link>
+
+                <Link to="/admin/units" className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 group">
+                    <div className="p-4 bg-amber-100 text-amber-600 rounded-xl group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                        <School className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg text-gray-900 group-hover:text-amber-700 transition-colors">Gerenciar Unidades</h3>
+                        <p className="text-sm text-gray-500">Cadastrar escolas e gigantinhos</p>
+                    </div>
+                </Link>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">

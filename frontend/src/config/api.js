@@ -28,5 +28,9 @@ export const API_ENDPOINTS = {
         all: `${API_URL}/api/organizations`,
         byId: (id) => `${API_URL}/api/organizations/${id}`,
         bySlug: (slug) => `${API_URL}/api/organizations/slug/${slug}`,
+    },
+    units: {
+        base: `${API_URL}/api/units`,
+        byId: (id) => `${API_URL}/api/units/${id}`,
     }
 };

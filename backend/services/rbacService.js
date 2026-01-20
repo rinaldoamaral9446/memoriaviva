@@ -18,18 +18,29 @@ const hasPermission = async (userId, resource, action) => {
         if (!user) return false;
 
         // Super Admin bypass
-        if (user.role === 'super_admin') return true;
+        if (user.role === 'super_admin') {
+            // console.log(`RBAC: User ${userId} is super_admin. Access granted.`);
+            return true;
+        }
 
         // If no role assigned (shouldn't happen with new system), deny
-        if (!user.userRole) return false;
+        if (!user.userRole) {
+            console.log(`RBAC: User ${userId} has no role assigned. Denied.`);
+            return false;
+        }
 
         const permissions = JSON.parse(user.userRole.permissions);
 
         // Check if resource exists in permissions
-        if (!permissions[resource]) return false;
+        if (!permissions[resource]) {
+            console.log(`RBAC: Resource '${resource}' not found in permissions for user ${userId}.`);
+            return false;
+        }
 
         // Check if action is allowed
-        return permissions[resource].includes(action);
+        const allowed = permissions[resource].includes(action);
+        if (!allowed) console.log(`RBAC: Action '${action}' on '${resource}' denied for user ${userId}.`);
+        return allowed;
     } catch (error) {
         console.error('RBAC Error:', error);
         return false;

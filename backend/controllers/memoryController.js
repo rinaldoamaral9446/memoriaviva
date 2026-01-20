@@ -93,3 +93,28 @@ exports.togglePublicStatus = async (req, res) => {
         res.status(500).json({ message: 'Error updating status', error: error.message });
     }
 };
+
+exports.updateMemoryStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const updated = await MemoryService.updateMemoryStatus(id, status, req.user);
+        res.json(updated);
+    } catch (error) {
+        if (error.message === 'Memory not found') return res.status(404).json({ message: error.message });
+        if (error.message === 'Invalid status') return res.status(400).json({ message: error.message });
+        if (error.message.includes('Not authorized')) return res.status(403).json({ message: error.message });
+
+        res.status(500).json({ message: 'Error updating status', error: error.message });
+    }
+};
+
+exports.getPendingMemories = async (req, res) => {
+    try {
+        const memories = await MemoryService.getPendingMemories(req.user);
+        res.json(memories);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching pending memories', error: error.message });
+    }
+};

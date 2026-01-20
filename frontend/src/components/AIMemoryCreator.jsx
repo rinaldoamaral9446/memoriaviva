@@ -4,6 +4,7 @@ import { useOrganization } from '../context/OrganizationContext';
 import AudioRecorder from './AudioRecorder';
 
 import { API_ENDPOINTS, API_URL } from '../config/api';
+import { useVideoCompressor } from '../hooks/useVideoCompressor';
 
 const AIMemoryCreator = ({ onMemoryCreated }) => {
     const { organization, branding } = useOrganization();
@@ -73,16 +74,42 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
     // Get AI instructions from organization config
     const aiInstructions = organization?.config?.aiInstructions || 'A IA vai extrair título, descrição, data, local e tags da sua memória';
 
-    const handleFileChange = (e) => {
+    // Video Compression Hook
+    const { compress, progress: compressionProgress, status: compressionStatus } = useVideoCompressor();
+    const [isCompressing, setIsCompressing] = useState(false);
+
+    const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            setSelectedFile(file);
-            // Create preview URL
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFilePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
+            // Check if it's a video
+            if (file.type.startsWith('video/')) {
+                console.log('🎥 Video detected, starting compression flow...');
+                setIsCompressing(true);
+                setSelectedFile(file); // Show preview immediately even if raw
+
+                // Create preview URL immediately
+                const reader = new FileReader();
+                reader.onloadend = () => setFilePreview(reader.result);
+                reader.readAsDataURL(file);
+
+                try {
+                    // Attempt Compression
+                    const processedFile = await compress(file);
+                    console.log(`📉 Compression Result: ${file.size} -> ${processedFile.size} bytes`);
+                    setSelectedFile(processedFile);
+                } catch (err) {
+                    console.error('Compression critical fail, using original', err);
+                    setSelectedFile(file);
+                } finally {
+                    setIsCompressing(false);
+                }
+            } else {
+                // Determine logic for non-video files
+                setSelectedFile(file);
+                const reader = new FileReader();
+                reader.onloadend = () => setFilePreview(reader.result);
+                reader.readAsDataURL(file);
+            }
         }
     };
 
@@ -358,55 +385,89 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
                                 </button>
                             ) : (
                                 <div className="text-left animate-fade-in-down">
-                                    <div className="p-4 bg-white border border-gray-200 rounded-xl mb-4">
-                                        {(() => {
-                                            // [SAFETY] Safe Parsing
-                                            let plan = null;
-                                            try {
-                                                // Handle both DB record (with stringified .content) and direct API object
-                                                plan = lessonPlan?.content ? JSON.parse(lessonPlan.content) : lessonPlan;
-                                            } catch (e) {
-                                                return <p className="text-red-500">Erro ao processar dados do plano.</p>;
-                                            }
-                                            if (!plan) return <p className="text-red-500">Erro ao carregar plano.</p>;
+                                    {(() => {
+                                        // [SAFETY] Safe Parsing Logic Preserved
+                                        let plan = null;
+                                        try {
+                                            plan = lessonPlan?.content ? JSON.parse(lessonPlan.content) : lessonPlan;
+                                        } catch (e) {
+                                            return <p className="text-red-500 bg-red-50 p-4 rounded-lg">Erro ao processar dados do plano.</p>;
+                                        }
+                                        if (!plan) return <p className="text-red-500 bg-red-50 p-4 rounded-lg">Erro ao carregar plano.</p>;
 
-                                            return (
-                                                <>
-                                                    <h4 className="font-bold text-gray-800 mb-1">{plan.title || 'Plano sem Título'}</h4>
+                                        return (
+                                            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-4 hover:shadow-md transition-shadow">
+                                                {/* Header Image or Decorative Top (Optional - keeping clean as per Stitch) */}
 
-                                                    {/* Summary Section */}
-                                                    {plan.summary && (
-                                                        <blockquote className="p-3 my-3 border-l-4 border-brand-purple bg-purple-50 italic text-gray-600 text-sm rounded-r-lg">
-                                                            "{plan.summary}"
-                                                        </blockquote>
-                                                    )}
+                                                <div className="p-6 border-b border-gray-50">
+                                                    <h4 className="font-serif text-xl font-bold text-gray-900 mb-3 leading-tight">
+                                                        {plan.title || 'Plano de Aula'}
+                                                    </h4>
 
-                                                    <p className="text-sm text-gray-500 mb-3">Códigos: {plan.bnccCodes?.join(', ') || 'N/A'}</p>
-
-                                                    {/* Highlight Gigantinhos Kit */}
-                                                    {plan.gigantinhosKit && (
-                                                        <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-3 border border-blue-100">
-                                                            <strong>⚡ Kit Gigantinhos:</strong> {plan.gigantinhosKit}
+                                                    {/* BNCC Codes as Badges */}
+                                                    {plan.bnccCodes && plan.bnccCodes.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2 mb-2">
+                                                            {plan.bnccCodes.map((code, idx) => (
+                                                                <span key={idx} className="px-2.5 py-1 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded border border-brand-primary/20 font-sans">
+                                                                    {code}
+                                                                </span>
+                                                            ))}
                                                         </div>
                                                     )}
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={handleDownloadPDF}
-                                            className="flex-1 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow flex items-center justify-center gap-2"
-                                        >
-                                            <Download className="w-5 h-5" /> PDF Oficial
-                                        </button>
-                                        <button
-                                            onClick={() => { setSavedMemory(null); setLessonPlan(null); setTextInput(''); }}
-                                            className="flex-1 py-3 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50"
-                                        >
-                                            Nova Memória
-                                        </button>
-                                    </div>
+                                                </div>
+
+                                                <div className="p-6 space-y-5">
+                                                    {/* Educational Brand / Kit */}
+                                                    {(plan.educationalBrand || plan.gigantinhosKit) && (
+                                                        <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                            <BookOpen className="w-4 h-4 text-brand-primary" />
+                                                            <span className="font-bold text-gray-900">Material de Apoio:</span>
+                                                            <span className="font-medium text-brand-primary">
+                                                                {plan.educationalBrand || plan.gigantinhosKit}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Summary */}
+                                                    {plan.summary && (
+                                                        <p className="text-gray-600 text-sm leading-relaxed font-sans border-l-2 border-brand-primary/30 pl-4 italic">
+                                                            "{plan.summary}"
+                                                        </p>
+                                                    )}
+
+                                                    {/* Topics or Objectives Preview */}
+                                                    {plan.objectives && plan.objectives.length > 0 && (
+                                                        <div className="space-y-1">
+                                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Objetivos de Aprendizagem</span>
+                                                            <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 ml-1">
+                                                                {plan.objectives.slice(0, 3).map((obj, i) => (
+                                                                    <li key={i}>{obj}</li>
+                                                                ))}
+                                                                {plan.objectives.length > 3 && <li className="text-xs text-gray-400 italic">...e mais {plan.objectives.length - 3}</li>}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Actions Footer */}
+                                                <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex gap-3">
+                                                    <button
+                                                        onClick={handleDownloadPDF}
+                                                        className="flex-1 py-2.5 bg-brand-primary text-white font-bold rounded-lg hover:bg-opacity-90 shadow-sm flex items-center justify-center gap-2 transition-all"
+                                                    >
+                                                        <Download className="w-4 h-4" />
+                                                        PDF Oficial
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setSavedMemory(null); setLessonPlan(null); setTextInput(''); }}
+                                                        className="px-4 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-lg hover:bg-white hover:border-gray-300 hover:text-gray-800 transition-all text-sm"
+                                                    >
+                                                        Nova Memória
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             )}
                         </div>
@@ -552,10 +613,24 @@ const AIMemoryCreator = ({ onMemoryCreated }) => {
 
                                 <button
                                     onClick={handleAnalyze}
-                                    disabled={isAnalyzing || (inputMode === 'file' && !textInput && !selectedFile && !audioBlob) || (inputMode === 'youtube' && !youtubeUrl)}
+                                    disabled={isCompressing || isAnalyzing || (inputMode === 'file' && !textInput && !selectedFile && !audioBlob) || (inputMode === 'youtube' && !youtubeUrl)}
                                     className={`w-full py-4 bg-gradient-to-r ${inputMode === 'youtube' ? 'from-red-600 via-red-500 to-red-600' : 'from-brand-purple via-indigo-800 to-brand-purple'} bg-[length:200%_auto] hover:bg-right text-white rounded-xl font-bold text-lg shadow-lg transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group`}
                                 >
-                                    {isAnalyzing ? (
+                                    {isCompressing ? (
+                                        <div className="flex flex-col items-center gap-2 w-full">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                <span>Otimizando vídeo... {compressionProgress}%</span>
+                                            </div>
+                                            <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-white transition-all duration-300"
+                                                    style={{ width: `${compressionProgress}%` }}
+                                                />
+                                            </div>
+                                            {compressionStatus === 'error' && <span className="text-xs opacity-75">(Usando original - dispositivo lento)</span>}
+                                        </div>
+                                    ) : isAnalyzing ? (
                                         <div className="flex items-center gap-2">
                                             <Loader2 className="w-6 h-6 animate-spin" />
                                             <span>Tecendo memórias...</span>

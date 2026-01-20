@@ -63,7 +63,8 @@ exports.register = async (req, res) => {
         const token = jwt.sign({
             userId: user.id,
             organizationId: user.organizationId,
-            role: user.role
+            role: user.role,
+            schoolUnitId: user.schoolUnitId
         }, JWT_SECRET, { expiresIn: '24h' });
 
         res.status(201).json({
@@ -74,6 +75,7 @@ exports.register = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                schoolUnitId: user.schoolUnitId,
                 organization: user.organization
             }
         });
@@ -115,7 +117,8 @@ exports.login = async (req, res) => {
         const token = jwt.sign({
             userId: user.id,
             organizationId: user.organizationId,
-            role: user.role
+            role: user.role,
+            schoolUnitId: user.schoolUnitId // [NEW] Added for Unit Hierarchy filtering
         }, JWT_SECRET, { expiresIn: '24h' });
 
         // Parse organization config if exists
@@ -144,6 +147,7 @@ exports.login = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role, // Keep for backward compatibility
+                schoolUnitId: user.schoolUnitId, // [NEW]
                 roleId: user.roleId,
                 permissions: permissions, // New dynamic permissions
                 roleName: user.userRole ? user.userRole.name : null,
@@ -192,6 +196,7 @@ exports.getProfile = async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
+            schoolUnitId: user.schoolUnitId,
             organization: user.organization
         });
     } catch (error) {

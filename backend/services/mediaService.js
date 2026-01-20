@@ -3,42 +3,68 @@ const path = require('path');
 const fs = require('fs');
 
 /**
- * Generates a thumbnail for a given video file.
- * @param {string} filePath - Absolute path to the video file.
- * @param {string} filename - Original filename (used to name the thumbnail).
- * @returns {Promise<string>} - Public URL of the generated thumbnail.
+ * Generates a thumbnail for a video file at 25% duration or 1s mark.
+ * @param {string} filePath - Absolute path to the source video
+ * @param {string} filename - Base filename of the source video (e.g. "video_123.mp4")
+ * @returns {Promise<string>} - Public URL of the generated thumbnail
  */
 exports.generateThumbnail = (filePath, filename) => {
     return new Promise((resolve, reject) => {
-        // Define uploads directory (where we save the thumbnail)
+        // Define upload directory (relative to this service file: ../uploads)
         const uploadsDir = path.join(__dirname, '..', 'uploads');
-        // Clean filename to avoid issues, append timestamp to ensure uniqueness if needed, 
-        // but sticking to a simple pattern 'thumb-' + unique part of filename is safer.
-        // Assuming filename passed here is the stored filename (unique).
-        const outputFilename = `thumb-${path.basename(filename, path.extname(filename))}.jpg`;
 
-        // Ensure uploads dir exists (sanity check)
+        // Ensure upload dir exists
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
         }
 
-        // Check if ffmpeg is available (optional safety check, but fluent-ffmpeg usually throws if not found)
+        const thumbFilename = `thumb-${path.parse(filename).name}.jpg`;
+
+        console.log(`[MediaService] Generating thumbnail for ${filename}...`);
 
         ffmpeg(filePath)
             .screenshots({
-                timestamps: ['25%'], // Capture at 25% of video duration
-                filename: outputFilename,
+                timestamps: ['25%'], // Capture at 25% of video
+                filename: thumbFilename,
                 folder: uploadsDir,
                 size: '640x360' // Standard 16:9 thumbnail
             })
             .on('end', () => {
-                // Return public URL relative to server root
-                resolve(`/uploads/${outputFilename}`);
+                console.log(`[MediaService] Thumbnail generated: ${thumbFilename}`);
+                // Return relative URL path that frontend can access
+                resolve(`/uploads/${thumbFilename}`);
             })
             .on('error', (err) => {
-                console.error('❌ Error generating thumbnail for ' + filename, err);
-                // Rejecting allows the caller to catch and decide whether to fail the request or just skip the thumbnail
-                reject(err);
+                console.error('[MediaService] Error generating thumbnail:', err);
+                // Non-blocking error: resolve with null (no thumbnail) rather than crashing flow
+                resolve(null);
             });
+    });
+};
+
+/**
+ * Extracts metadata from a video file (duration, resolution, etc)
+ * @param {string} filePath 
+ * @returns {Promise<Object>} Metadata object
+ */
+exports.getVideoMetadata = (filePath) => {
+    return new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err) {
+                console.error('[MediaService] Error fetching metadata:', err);
+                resolve({});
+            } else {
+                const videoStream = metadata.streams.find(s => s.codec_type === 'video');
+                const format = metadata.format;
+
+                resolve({
+                    duration: format.duration,
+                    size: format.size,
+                    width: videoStream ? videoStream.width : 0,
+                    height: videoStream ? videoStream.height : 0,
+                    codec: videoStream ? videoStream.codec_name : 'unknown'
+                });
+            }
+        });
     });
 };

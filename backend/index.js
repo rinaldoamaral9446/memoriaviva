@@ -47,6 +47,8 @@ app.use('/api/audit', auditRoutes); // Registered audit routes
 app.use('/api/settings', settingsRoutes); // Registered settings routes
 app.use('/api/agents', require('./routes/agentRoutes')); // New Agent Management Routes
 app.use('/api/pedagogical', require('./routes/pedagogicalRoutes')); // [NEW] Pedagogical Routes (BNCC/PDF)
+app.use('/api/system', require('./routes/systemRoutes')); // [NEW] System Config & Audit
+app.use('/api/units', require('./routes/unitRoutes')); // [NEW] School Units Management
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
@@ -68,6 +70,10 @@ app.use((err, req, res, next) => {
 });
 
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

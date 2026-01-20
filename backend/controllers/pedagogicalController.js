@@ -47,3 +47,15 @@ exports.downloadLessonPlanPDF = async (req, res) => {
         res.status(500).json({ error: 'Failed to generate PDF' });
     }
 };
+
+exports.suggestConfig = async (req, res) => {
+    try {
+        const { cityName } = req.body;
+        if (!cityName) return res.status(400).json({ error: 'City name required' });
+
+        const suggestions = await PedagogicalService.suggestCityDNA(cityName);
+        res.json(suggestions);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to generate suggestions' });
+    }
+};

@@ -16,14 +16,18 @@ import KidsPage from './pages/KidsPage';
 import StudioPage from './pages/StudioPage';
 import AdminDashboard from './pages/AdminDashboard';
 import OrgManagement from './pages/OrgManagement';
-import RoleManagement from './pages/admin/RoleManagement';
+import RoleManagement from './pages/RoleManagement';
 import OrgList from './pages/admin/OrgList';
 import AiSettings from './pages/admin/AiSettings';
 import AuditLogs from './pages/admin/AuditLogs';
 import EventCalendar from './pages/events/EventCalendar';
 import FinancialReports from './pages/admin/FinancialReports';
 import SocialDashboard from './pages/social/SocialDashboard';
+import SystemSettings from './pages/SystemSettings';
+import Units from './pages/admin/Units';
+import MemoryModeration from './pages/admin/MemoryModeration';
 import Home from './pages/Home';
+import PublicVitrine from './pages/PublicVitrine';
 
 function App() {
   return (
@@ -34,6 +38,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/public/vitrine/:slug?" element={<PublicVitrine />} />
 
             <Route element={<MainLayout />}>
               <Route
@@ -170,6 +175,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AuditLogs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/system"
+                element={
+                  <ProtectedRoute>
+                    <SystemSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/units"
+                element={
+                  <ProtectedRoute>
+                    <Units />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/moderation"
+                element={
+                  <ProtectedRoute>
+                    <MemoryModeration />
                   </ProtectedRoute>
                 }
               />

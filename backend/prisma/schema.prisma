@@ -81,7 +81,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -185,6 +185,10 @@ model Memory {
   isPublic       Boolean      @default(false)
   curationScore  Int          @default(0)
   aiGenerated    Boolean      @default(false)
+  
+  // [NEW] Smart Player Columns
+  transcription  String?      // Full transcript text
+  chapters       String?      // JSON: [{timestamp: "02:15", title: "Intro"}]
 
   // [NEW] Curadoria
   status         String       @default("PENDING") // Enum: "PENDING", "APPROVED", "REJECTED"

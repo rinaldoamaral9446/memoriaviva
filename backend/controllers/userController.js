@@ -55,6 +55,12 @@ exports.getOrganizationUsers = async (req, res) => {
                 email: true,
                 role: true,
                 createdAt: true,
+                schoolUnit: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
                 _count: {
                     select: { memories: true }
                 }
@@ -70,7 +76,7 @@ exports.getOrganizationUsers = async (req, res) => {
 // Create a new user (Admin only)
 exports.createUser = async (req, res) => {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, schoolUnitId } = req.body;
         const organizationId = req.user.organizationId;
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -87,6 +93,7 @@ exports.createUser = async (req, res) => {
                 email,
                 password: hashedPassword,
                 role: role || 'user',
+                schoolUnitId: schoolUnitId ? parseInt(schoolUnitId) : null,
                 organizationId
             }
         });
@@ -101,7 +108,7 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { role } = req.body;
+        const { role, schoolUnitId } = req.body;
         const organizationId = req.user.organizationId;
 
         // Verify user belongs to organization
@@ -113,9 +120,13 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        const updateData = {};
+        if (role) updateData.role = role;
+        if (schoolUnitId !== undefined) updateData.schoolUnitId = schoolUnitId ? parseInt(schoolUnitId) : null;
+
         await prisma.user.update({
             where: { id: parseInt(id) },
-            data: { role }
+            data: updateData
         });
 
         res.json({ message: 'User updated successfully' });

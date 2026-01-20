@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
+import InstallPrompt from '../components/InstallPrompt';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -70,7 +71,6 @@ const Login = () => {
                     Login
                 </button>
 
-                {/* Register Link */}
                 <div className="text-center mt-4">
                     <p className="text-gray-600">
                         Não tem uma conta?{' '}
@@ -80,6 +80,7 @@ const Login = () => {
                     </p>
                 </div>
             </form>
+            <InstallPrompt />
         </div>
     );
 };

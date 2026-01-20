@@ -1,18 +1,34 @@
-const prisma = require('../prisma/client');
+const auditService = require('../services/auditService');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-const getLogs = async (req, res) => {
+exports.getLogs = async (req, res) => {
     try {
-        const logs = await prisma.auditLog.findMany({
-            where: { organizationId: req.user.organizationId },
-            orderBy: { createdAt: 'desc' },
-            take: 100,
-            include: { user: { select: { name: true, email: true } } }
+        const organizationId = req.user.organizationId;
+        const logs = await auditService.getLogs(organizationId);
+
+        // Enrich logs with user info manually if relation is tricky, 
+        // but let's assume we can fetch users if needed.
+        // For now, service returns standard logs.
+
+        // Let's resolve user names if userId exists
+        const userIds = [...new Set(logs.map(l => l.userId).filter(id => id))];
+        const users = await prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true, email: true } // maybe avatar later
         });
-        res.json(logs);
+
+        const userMap = {};
+        users.forEach(u => userMap[u.id] = u);
+
+        const enrichedLogs = logs.map(log => ({
+            ...log,
+            user: log.userId ? userMap[log.userId] : { name: 'Sistema' }
+        }));
+
+        res.json(enrichedLogs);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error fetching audit logs' });
+        console.error('Audit Log Error:', error);
+        res.status(500).json({ error: 'Failed to fetch logs' });
     }
 };
-
-module.exports = { getLogs };

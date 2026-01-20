@@ -9,15 +9,24 @@ export default {
             colors: {
                 brand: {
                     gold: '#D4AF37',
-                    purple: '#4B0082',
+                    purple: 'var(--color-primary)', // Dynamic Primary
                     cream: '#F5F5DC',
                     dark: '#1A1A1A',
                     light: '#FAFAFA',
+                    // New Design System Colors
+                    primary: 'var(--color-primary)',
+                    'neutral-custom': '#64748b',
+                    surface: '#f8fafc',
+                    'success-al': '#10b981',
                 }
             },
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],
-                serif: ['Playfair Display', 'serif'],
+                serif: ['Merriweather', 'serif'],
+                display: ['Merriweather', 'serif'], // For titles
+            },
+            borderRadius: {
+                DEFAULT: '0.5rem',
             },
             animation: {
                 'fade-in': 'fadeIn 0.5s ease-out',

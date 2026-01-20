@@ -17,34 +17,34 @@ const MainLayout = () => {
 
     return (
         <div className="min-h-screen flex flex-col">
-            {/*  Glassmorphism Navbar with dynamic branding */}
-            <nav className="fixed top-0 w-full z-50 glass border-b border-white/30" style={{ background: navGradient }}>
+            {/*  Stitch Design Navbar */}
+            <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 transition-all duration-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-20 items-center">
-                        {/* Logo with organization branding */}
+                    <div className="flex justify-between h-16 items-center">
+                        {/* Logo & Brand */}
                         <div className="flex-shrink-0 flex items-center gap-3">
                             {branding.logo ? (
-                                <img src={branding.logo} alt={branding.name} className="w-10 h-10 rounded-full shadow-lg object-cover" />
+                                <img src={branding.logo} alt={branding.name} className="w-8 h-8 rounded-full shadow-sm object-cover" />
                             ) : (
                                 <div
-                                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                                    className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm"
                                     style={{
-                                        background: `linear-gradient(135deg, ${branding.primaryColor}0%, ${branding.secondaryColor}100%)`
+                                        background: `linear-gradient(135deg, ${branding.primaryColor}00, ${branding.primaryColor}20)`,
+                                        border: `1px solid ${branding.primaryColor}40`
                                     }}
                                 >
-                                    <span className="text-white font-serif font-bold text-xl">{branding.name.charAt(0)}</span>
+                                    <span className="font-serif font-bold text-lg" style={{ color: branding.primaryColor }}>{branding.name.charAt(0)}</span>
                                 </div>
                             )}
                             <div>
                                 <Link
                                     to="/"
-                                    className="text-2xl font-serif font-bold tracking-tight hover:opacity-80 transition-opacity"
-                                    style={{ color: branding.primaryColor }}
+                                    className="text-lg font-serif font-bold tracking-tight text-gray-900 leading-none hover:opacity-80 transition-opacity"
                                 >
                                     {branding.name}
                                 </Link>
                                 {organization && (
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-gray-500">
                                         <Building2 className="w-3 h-3" />
                                         <span>{organization.slug}</span>
                                     </div>
@@ -52,134 +52,81 @@ const MainLayout = () => {
                             </div>
                         </div>
 
-                        {/* Desktop Menu */}
-                        <div className="hidden md:flex items-center space-x-8">
-                            <Link
-                                to="/"
-                                className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                            >
-                                <Home className="w-4 h-4" />
-                                Início
-                            </Link>
+                        {/* Desktop Menu - Centered & Clean */}
+                        <div className="hidden md:flex items-center space-x-1">
+                            {/* Navigation Items with Stitch Active State */}
+                            {[
+                                { path: '/', label: 'Início', icon: Home },
+                                user && { path: '/memories', label: 'Memórias', icon: BookOpen },
+                                user && { path: '/educator', label: 'Educador', icon: GraduationCap },
+                                user && { path: '/agents', label: 'Agentes', icon: Bot }, // Added Agents
+                                user && { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+                            ].filter(Boolean).map((item) => (
+                                <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 group ${isActive(item.path)
+                                        ? 'text-brand-primary bg-brand-primary/5'
+                                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <item.icon className={`w-4 h-4 ${isActive(item.path) ? 'fill-current' : ''}`} />
+                                    <span>{item.label}</span>
+                                    {isActive(item.path) && (
+                                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-primary rounded-full mb-1.5 opacity-0"></span>
+                                    )}
+                                </Link>
+                            ))}
 
+                            {/* Protected Routes (Admin) */}
+                            {user?.role === 'admin' && (
+                                <Link
+                                    to="/admin"
+                                    className={`ml-2 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all ${isActive('/admin') ? 'bg-gray-900 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+                                >
+                                    <Shield className="w-4 h-4" />
+                                    Admin
+                                </Link>
+                            )}
+                            {/* Super Admin Link */}
+                            {user?.role === 'super_admin' && (
+                                <Link
+                                    to="/admin/super"
+                                    className={`ml-2 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all ${isActive('/admin/super') ? 'bg-red-600 text-white shadow-md' : 'text-red-600 hover:bg-red-50'}`}
+                                >
+                                    <Shield className="w-4 h-4" />
+                                    Super
+                                </Link>
+                            )}
+                        </div>
+
+                        {/* User Profile & Actions */}
+                        <div className="hidden md:flex items-center gap-4 border-l border-gray-200 pl-6 ml-2">
                             {user ? (
-                                <>
-                                    <Link
-                                        to="/events"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/events') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                    >
-                                        <Calendar className="w-4 h-4" />
-                                        Agenda
-                                    </Link>
-                                    <Link
-                                        to="/social"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/social') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                    >
-                                        <Share2 className="w-4 h-4" />
-                                        Social
-                                    </Link>
-                                    <Link
-                                        to="/memories"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/memories') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                    >
-                                        <BookOpen className="w-4 h-4" />
-                                        Minhas Memórias
-                                    </Link>
-                                    <Link
-                                        to="/agents"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/agents') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                    >
-                                        <Bot className="w-4 h-4" />
-                                        Agentes
-                                    </Link>
-                                    <Link
-                                        to="/educator"
-                                        className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/educator') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
-                                    >
-                                        <GraduationCap className="w-4 h-4" />
-                                        Educador
-                                    </Link>
-                                    <Link
-                                        to="/analytics"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/analytics') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                    >
-                                        <BarChart3 className="w-4 h-4" />
-                                        Analytics
-                                    </Link>
-                                    <Link
-                                        to="/kids"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/kids') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                    >
-                                        <Gamepad2 className="w-4 h-4" />
-                                        Kids
-                                    </Link>
-                                    <Link
-                                        to="/studio"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/studio') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                    >
-                                        <Film className="w-4 h-4" />
-                                        Estúdio
-                                    </Link>
-
-                                    {/* Management Links */}
-                                    {user?.role === 'admin' && (
-                                        <>
-                                            <Link
-                                                to="/admin/team"
-                                                className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/team') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                            >
-                                                <Users className="w-4 h-4" />
-                                                Equipe
-                                            </Link>
-                                            <Link
-                                                to="/admin/finance"
-                                                className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/finance') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                            >
-                                                <BarChart3 className="w-4 h-4" />
-                                                Financeiro
-                                            </Link>
-                                        </>
-                                    )}
-
-                                    {/* Super Admin Link */}
-                                    {user?.role === 'super_admin' && (
-                                        <Link
-                                            to="/admin/super"
-                                            className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/admin/super') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                        >
-                                            <Shield className="w-4 h-4" />
-                                            Super Admin
+                                <div className="flex items-center gap-3">
+                                    <div className="text-right hidden lg:block">
+                                        <p className="text-sm font-bold text-gray-900 leading-none">{user.name}</p>
+                                        <p className="text-xs text-gray-500">{user.email}</p>
+                                    </div>
+                                    <div className="relative group">
+                                        <Link to="/dashboard">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all cursor-pointer">
+                                                <User className="w-5 h-5" />
+                                            </div>
                                         </Link>
-                                    )}
-
-                                    <Link
-                                        to="/dashboard"
-                                        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ${isActive('/dashboard') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'}`}
-                                    >
-                                        <User className="w-4 h-4" />
-                                        Perfil
-                                    </Link>
-                                    {user.role === 'admin' && (
-                                        <Link
-                                            to="/admin"
-                                            className={`flex items - center gap - 2 text - sm font - medium transition - colors duration - 300 ${isActive('/admin') ? 'text-brand-purple' : 'text-gray-500 hover:text-brand-purple'} `}
-                                        >
-                                            <Building2 className="w-4 h-4" />
-                                            Admin
-                                        </Link>
-                                    )}
+                                    </div>
                                     <button
                                         onClick={logout}
-                                        className="flex items-center gap-2 px-5 py-2 rounded-full border border-brand-purple/20 text-brand-purple hover:bg-brand-purple hover:text-white transition-all duration-300 text-sm font-medium"
+                                        className="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-red-50"
+                                        title="Sair"
                                     >
-                                        <LogOut className="w-4 h-4" />
-                                        Sair
+                                        <LogOut className="w-5 h-5" />
                                     </button>
-                                </>
+                                </div>
                             ) : (
                                 <Link
                                     to="/login"
-                                    className="btn-primary shadow-brand-purple/20"
+                                    className="px-5 py-2.5 bg-brand-primary text-white text-sm font-bold rounded-full shadow-lg hover:shadow-brand-primary/30 hover:-translate-y-0.5 transition-all"
                                 >
                                     Entrar
                                 </Link>
@@ -190,7 +137,7 @@ const MainLayout = () => {
                         <div className="md:hidden flex items-center">
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="text-gray-600 hover:text-brand-purple focus:outline-none transition-colors"
+                                className="text-gray-600 hover:text-brand-primary focus:outline-none transition-colors p-2"
                             >
                                 {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                             </button>
@@ -198,71 +145,31 @@ const MainLayout = () => {
                     </div>
                 </div>
 
-                {/* Mobile Menu */}
+                {/* Mobile Menu (Simplified) */}
                 {isMenuOpen && (
-                    <div className="md:hidden glass border-t border-white/20 animate-slide-up">
-                        <div className="px-4 pt-2 pb-6 space-y-2">
-                            <Link
-                                to="/"
-                                className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                Início
+                    <div className="md:hidden bg-white border-t border-gray-100 shadow-xl animate-slide-up absolute w-full left-0 top-16">
+                        <div className="px-4 py-6 space-y-3">
+                            <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 text-gray-900 font-medium">
+                                <Home className="w-5 h-5" /> Início
                             </Link>
-                            {user ? (
+                            {user && (
                                 <>
-                                    <Link
-                                        to="/memories"
-                                        className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        Minhas Memórias
+                                    <Link to="/memories" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 font-medium">
+                                        <BookOpen className="w-5 h-5" /> Minhas Memórias
                                     </Link>
-                                    <Link
-                                        to="/agents"
-                                        className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        Agentes
+                                    <Link to="/educator" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 font-medium">
+                                        <GraduationCap className="w-5 h-5" /> Educador
                                     </Link>
-                                    <Link
-                                        to="/educator"
-                                        className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        Educador
-                                    </Link>
-                                    <Link
-                                        to="/dashboard"
-                                        className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        Perfil
-                                    </Link>
-                                    {user.role === 'admin' && (
-                                        <Link
-                                            to="/admin"
-                                            className="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-purple-50 transition-colors"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            Admin
-                                        </Link>
-                                    )}
-                                    <button
-                                        onClick={() => { logout(); setIsMenuOpen(false); }}
-                                        className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
-                                    >
-                                        Sair
-                                    </button>
+                                    <div className="border-t border-gray-100 my-2 pt-2">
+                                        <div className="px-4 mb-2">
+                                            <p className="font-bold text-gray-900">{user.name}</p>
+                                            <p className="text-xs text-gray-500">{user.email}</p>
+                                        </div>
+                                        <button onClick={logout} className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 font-medium">
+                                            <LogOut className="w-5 h-5" /> Sair
+                                        </button>
+                                    </div>
                                 </>
-                            ) : (
-                                <Link
-                                    to="/login"
-                                    className="block px-3 py-3 rounded-lg text-base font-medium text-brand-purple font-bold hover:bg-purple-50 transition-colors"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    Entrar
-                                </Link>
                             )}
                         </div>
                     </div>

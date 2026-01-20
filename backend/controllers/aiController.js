@@ -115,12 +115,12 @@ async function waitForFileActive(fileManager, uploadFileResult) {
     const name = uploadFileResult.file.name;
     let file = await fileManager.getFile(name);
     let attempts = 0;
-    const maxAttempts = 30; // 30 * 4s = 120s (2 minutes)
+    const maxAttempts = 75; // 75 * 4s = 300s (5 minutes)
 
     while (file.state === 'PROCESSING') {
         attempts++;
         if (attempts > maxAttempts) {
-            throw new Error('Timeout: Video processing took too long.');
+            throw new Error(`Timeout: Video processing took too long (> 5 minutes). State: ${file.state}`);
         }
         await new Promise(resolve => setTimeout(resolve, 4000));
         file = await fileManager.getFile(name);
@@ -501,7 +501,7 @@ exports.processLink = async (req, res) => {
             const metadataContext = `\nTítulo do Vídeo: ${videoTitle}\nCanal: ${authorName}\nURL: ${youtubeUrl}\nDescrição: ${description}`;
 
             systemPrompt = PromptService.buildMemoryPrompt(
-                promptInput + metadataContext + transcriptContext,
+                promptInput + metadataContext + transcriptContext + "\n[IMPORTANTE] Gere também uma lista de 'chapters' (array de objetos com 'time' em segundos e 'label' string) baseada nos tópicos do vídeo.",
                 organizationInstructions,
                 organizationGuardrails,
                 culturalContext
@@ -590,6 +590,17 @@ exports.processLink = async (req, res) => {
                 Título: ${videoTitle}
                 Descrição: ${description}
                 Nota: ${textInput}
+                
+                [INSTRUÇÃO NOVA]
+                Além da análise padrão, gere uma lista de CAPÍTULOS baseada no conteúdo inferido ou duração.
+                Formato JSON esperado no output final: 
+                {
+                  ...,
+                  "chapters": [
+                    {"time": 0, "label": "Início"},
+                    {"time": 60, "label": "Meio"}
+                  ]
+                }
                 `;
 
                 systemPrompt = PromptService.buildMemoryPrompt(
@@ -621,6 +632,10 @@ exports.processLink = async (req, res) => {
             duration: 0,
             analysisType: transcriptText ? 'transcript' : 'multimodal_visual'
         };
+
+        // [NEW] Populate Smart Player Fields
+        if (transcriptText) structuredData.transcription = transcriptText;
+        if (structuredData.chapters) structuredData.chapters = JSON.stringify(structuredData.chapters);
 
         // Cleanup
         if (tempVideoPath && fs.existsSync(tempVideoPath)) {

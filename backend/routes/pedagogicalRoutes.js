@@ -4,6 +4,7 @@ const pedagogicalController = require('../controllers/pedagogicalController');
 const authenticateToken = require('../middleware/authMiddleware');
 
 router.post('/plan', authenticateToken, pedagogicalController.createLessonPlan);
+router.post('/suggest-config', authenticateToken, pedagogicalController.suggestConfig);
 router.get('/plan/:id/pdf', authenticateToken, pedagogicalController.downloadLessonPlanPDF);
 
 module.exports = router;

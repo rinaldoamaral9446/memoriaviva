@@ -39,11 +39,14 @@ exports.createRole = async (req, res) => {
     }
 };
 
+const auditService = require('../services/auditService');
+
 exports.updateRole = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, description, permissions } = req.body;
         const organizationId = req.user.organizationId;
+        const userId = req.user.userId;
 
         // Ensure role belongs to user's org
         const existingRole = await prisma.role.findFirst({
@@ -54,12 +57,7 @@ exports.updateRole = async (req, res) => {
             return res.status(404).json({ message: 'Role not found' });
         }
 
-        if (existingRole.isSystem) {
-            // Allow updating description but maybe warn about permissions?
-            // For now, allow updating everything except slug/isSystem
-        }
-
-        const role = await prisma.role.update({
+        const updatedRole = await prisma.role.update({
             where: { id: parseInt(id) },
             data: {
                 name,
@@ -68,8 +66,19 @@ exports.updateRole = async (req, res) => {
             }
         });
 
-        res.json(role);
+        // Audit Log
+        const details = {
+            roleId: id,
+            roleName: updatedRole.name,
+            changes: {
+                permissions: permissions !== existingRole.permissions ? 'Updated' : 'Unchanged'
+            }
+        };
+        await auditService.logAction(userId, organizationId, 'UPDATE_ROLE', details, req);
+
+        res.json(updatedRole);
     } catch (error) {
+        console.error('Update Role Error:', error);
         res.status(500).json({ message: 'Error updating role', error: error.message });
     }
 };

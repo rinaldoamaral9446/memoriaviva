@@ -1,11 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const auditController = require('../controllers/auditController');
-const verifyToken = require('../middleware/authMiddleware');
-const { requirePermission } = require('../services/rbacService');
+const authMiddleware = require('../middleware/authMiddleware');
 
-router.use(verifyToken);
-
-router.get('/', requirePermission('audit', 'read'), auditController.getLogs);
+router.get('/', authMiddleware, auditController.getLogs);
 
 module.exports = router;

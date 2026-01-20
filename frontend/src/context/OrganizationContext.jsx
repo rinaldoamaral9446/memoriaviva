@@ -23,13 +23,20 @@ export const OrganizationProvider = ({ children }) => {
     // Update branding when organization changes
     useEffect(() => {
         if (organization) {
+            const primary = organization.primaryColor || '#4B0082';
+            const secondary = organization.secondaryColor || '#D4AF37';
+
             setBranding({
                 name: organization.name,
-                primaryColor: organization.primaryColor || '#4B0082',
-                secondaryColor: organization.secondaryColor || '#D4AF37',
+                primaryColor: primary,
+                secondaryColor: secondary,
                 logo: organization.logo || null,
                 config: organization.config || {}
             });
+
+            // Update CSS Variables for Tailwind
+            document.documentElement.style.setProperty('--color-primary', primary);
+            document.documentElement.style.setProperty('--color-secondary', secondary);
         } else {
             // Reset to default
             setBranding({
@@ -39,6 +46,8 @@ export const OrganizationProvider = ({ children }) => {
                 logo: null,
                 config: {}
             });
+            document.documentElement.style.setProperty('--color-primary', '#4B0082');
+            document.documentElement.style.setProperty('--color-secondary', '#D4AF37');
         }
     }, [organization]);
 

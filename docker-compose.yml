@@ -1,22 +1,41 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:14-alpine
-    container_name: memviva_postgres
+  # Banco de Dados (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: memoria_viva_db
     environment:
-      POSTGRES_DB: memviva_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: memoriaviva
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: pg_isready -U postgres
-      interval: 10s
-      timeout: 5s
-      retries: 5
+
+  # Backend API
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://admin:password123@db:5432/memoriaviva
+      - PORT=5000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - db
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && node index.js"
+
+  # Frontend (Vite)
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

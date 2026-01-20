@@ -30,7 +30,10 @@ class MemoryService {
 
     async getAllMemories() {
         return await prisma.memory.findMany({
-            where: { isPublic: true },
+            where: {
+                isPublic: true,
+                status: 'APPROVED'
+            },
             include: {
                 user: { select: { name: true } },
                 organization: { select: { name: true, logo: true, slug: true } }
@@ -90,8 +93,11 @@ class MemoryService {
         const { q, category, startDate, endDate } = query;
 
         const where = {
-            userId: user.userId,
             organizationId: user.organizationId,
+            // Filter by Unit if user has one and is NOT admin (or has view_all permission)
+            ...(user.schoolUnitId && user.role !== 'admin' && {
+                user: { schoolUnitId: user.schoolUnitId }
+            }),
             ...(q && {
                 OR: [
                     { title: { contains: q } },
@@ -125,6 +131,38 @@ class MemoryService {
         return await prisma.memory.update({
             where: { id: parseInt(id) },
             data: { isPublic }
+        });
+    }
+
+    async updateMemoryStatus(id, status, user) {
+        const allowedStatuses = ['PENDING', 'APPROVED', 'REJECTED'];
+        if (!allowedStatuses.includes(status)) {
+            throw new Error('Invalid status');
+        }
+
+        const memory = await prisma.memory.findUnique({ where: { id: parseInt(id) } });
+
+        if (!memory) throw new Error('Memory not found');
+        if (memory.organizationId !== user.organizationId) {
+            throw new Error('Not authorized');
+        }
+
+        return await prisma.memory.update({
+            where: { id: parseInt(id) },
+            data: { status }
+        });
+    }
+
+    async getPendingMemories(user) {
+        return await prisma.memory.findMany({
+            where: {
+                organizationId: user.organizationId,
+                status: 'PENDING'
+            },
+            include: {
+                user: { select: { name: true, email: true } }
+            },
+            orderBy: { createdAt: 'desc' }
         });
     }
 }

@@ -1,36 +1,47 @@
+
 import React, { useState, useEffect } from 'react';
 import {
-    Shield, Plus, Edit2, Trash2, Save, X, Sparkles, Check, AlertCircle, Loader
+    Shield, Plus, Save, Trash2, Check,
+    AlertCircle, Loader, Users, Lock, ChevronRight, LayoutGrid, Search
 } from 'lucide-react';
 import { API_URL } from '../../config/api';
 
 const RoleManagement = () => {
     const [roles, setRoles] = useState([]);
+    const [selectedRole, setSelectedRole] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingRole, setEditingRole] = useState(null);
+    const [saving, setSaving] = useState(false);
 
-    // Form State
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        mode: 'magic', // 'magic' or 'manual'
-        magicDescription: '',
-        permissions: {
-            memories: [],
-            users: [],
-            settings: [],
-            analytics: []
-        }
-    });
+    // Permission Matrix Configuration
+    const RESOURCES = ['memories', 'users', 'units', 'marketplace', 'ai_copilot', 'moderation', 'settings', 'analytics'];
 
-    const [aiLoading, setAiLoading] = useState(false);
-    const [aiError, setAiError] = useState(null);
+    const RESOURCE_CONFIG = {
+        memories: { label: 'Memórias', description: 'Gerenciar acervo e histórias' },
+        users: { label: 'Usuários', description: 'Gestão de equipe e acessos' },
+        units: { label: 'Unidades (Escolas)', description: 'Escolas e centros (Gigantinhos)' },
+        marketplace: { label: 'Marketplace', description: 'Ativação de Agentes' },
+        ai_copilot: { label: 'DNA & Prompts da IA', description: 'Configuração de Comportamento e Guardrails' },
+        moderation: { label: 'Moderação de Mídia', description: 'Aprovação e curadoria de conteúdo' },
+        settings: { label: 'Configurações', description: 'Ajustes globais do sistema' },
+        analytics: { label: 'Analytics', description: 'Visualização de dados' }
+    };
 
-    const RESOURCES = ['memories', 'users', 'settings', 'analytics'];
-    const ACTIONS = {
+    // Mapping specific actions to Matrix Columns
+    const COLUMNS = [
+        { key: 'create', label: 'Create', actionMatch: ['create'] },
+        { key: 'read', label: 'Read', actionMatch: ['read', 'view', 'browse'] },
+        { key: 'update', label: 'Update', actionMatch: ['update', 'edit_instructions', 'edit_guardrails', 'configure', 'moderate'] },
+        { key: 'delete', label: 'Delete', actionMatch: ['delete', 'deactivate'] },
+        { key: 'publish', label: 'Publish', actionMatch: ['publish', 'activate', 'create_draft'] }
+    ];
+
+    const AVAILABLE_ACTIONS = {
         memories: ['create', 'read', 'update', 'delete', 'publish', 'create_draft'],
         users: ['create', 'read', 'update', 'delete'],
+        units: ['create', 'read', 'update', 'delete'],
+        marketplace: ['browse', 'activate', 'deactivate'],
+        ai_copilot: ['view', 'edit_instructions', 'edit_guardrails'],
+        moderation: ['read', 'moderate'],
         settings: ['read', 'update'],
         analytics: ['read']
     };
@@ -40,379 +51,320 @@ const RoleManagement = () => {
     }, []);
 
     const fetchRoles = async () => {
+        setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            if (!token) {
-                console.error('No token found');
-                setLoading(false);
-                return;
-            }
-
-            const response = await fetch(`${API_URL}/api/roles`, {
-                headers: { Authorization: `Bearer ${token}` }
+            const response = await fetch(`${API_URL} /api/roles`, {
+                headers: { Authorization: `Bearer ${token} ` }
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
             const data = await response.json();
-            setRoles(Array.isArray(data) ? data : []);
+            const loadedRoles = Array.isArray(data) ? data : [];
+            setRoles(loadedRoles);
+
+            // Select first role by default if none selected
+            if (!selectedRole && loadedRoles.length > 0) {
+                selectRole(loadedRoles[0]);
+            } else if (selectedRole) {
+                // Refresh currently selected role data
+                const updated = loadedRoles.find(r => r.id === selectedRole.id);
+                if (updated) selectRole(updated);
+            }
         } catch (error) {
             console.error('Error fetching roles:', error);
-            setRoles([]); // Fallback to empty array
         } finally {
             setLoading(false);
         }
     };
 
-    const handleGeneratePermissions = async () => {
-        if (!formData.magicDescription) return;
+    const selectRole = (role) => {
+        // Parse permissions if string
+        const permissions = typeof role.permissions === 'string'
+            ? JSON.parse(role.permissions)
+            : role.permissions || {};
 
-        setAiLoading(true);
-        setAiError(null);
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/roles/generate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ description: formData.magicDescription })
-            });
+        // Ensure all resources exist in permissions object
+        RESOURCES.forEach(r => {
+            if (!permissions[r]) permissions[r] = [];
+        });
 
-            if (!response.ok) throw new Error('Failed to generate');
-
-            const data = await response.json();
-            setFormData(prev => ({
-                ...prev,
-                permissions: { ...prev.permissions, ...data.permissions },
-                description: prev.description || formData.magicDescription // Auto-fill description if empty
-            }));
-        } catch (error) {
-            setAiError('Erro ao gerar permissões. Tente novamente.');
-        } finally {
-            setAiLoading(false);
-        }
+        setSelectedRole({ ...role, permissions });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const token = localStorage.getItem('token');
-            const url = editingRole
-                ? `${API_URL}/api/roles/${editingRole.id}`
-                : `${API_URL}/api/roles`;
+    const handlePermissionChange = (resource, columnKey) => {
+        if (!selectedRole) return;
 
-            const method = editingRole ? 'PUT' : 'POST';
+        // Find which actual actions map to this column for this resource
+        const actionsInColumn = COLUMNS.find(c => c.key === columnKey).actionMatch;
+        const validActionsForResource = AVAILABLE_ACTIONS[resource]; // e.g. ['browse', 'activate'] for marketplace
 
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    name: formData.name,
-                    description: formData.description,
-                    permissions: formData.permissions
-                })
-            });
+        // Intersect: Which actions *could* be toggled here?
+        const targetActions = actionsInColumn.filter(a => validActionsForResource.includes(a));
 
-            if (response.ok) {
-                fetchRoles();
-                setIsModalOpen(false);
-                resetForm();
+        if (targetActions.length === 0) return; // No actions for this column in this resource
+
+        setSelectedRole(prev => {
+            const currentPerms = prev.permissions[resource] || [];
+            // Check if ANY of the target actions are present
+            const isChecked = targetActions.some(a => currentPerms.includes(a));
+
+            let newPerms;
+            if (isChecked) {
+                // Uncheck: Remove ALL target actions
+                newPerms = currentPerms.filter(a => !targetActions.includes(a));
+            } else {
+                // Check: Add ALL target actions
+                // (Simple toggle logic. For more granularity, we'd need checkboxes per action, but Matrix implies grouping)
+                const toAdd = targetActions.filter(a => !currentPerms.includes(a));
+                newPerms = [...currentPerms, ...toAdd];
             }
-        } catch (error) {
-            console.error('Error saving role:', error);
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (!window.confirm('Tem certeza que deseja excluir este perfil?')) return;
-
-        try {
-            const token = localStorage.getItem('token');
-            await fetch(`${API_URL}/api/roles/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchRoles();
-        } catch (error) {
-            console.error('Error deleting role:', error);
-        }
-    };
-
-    const resetForm = () => {
-        setEditingRole(null);
-        setFormData({
-            name: '',
-            description: '',
-            mode: 'magic',
-            magicDescription: '',
-            permissions: { memories: [], users: [], settings: [], analytics: [] }
-        });
-    };
-
-    const openEdit = (role) => {
-        setEditingRole(role);
-        setFormData({
-            name: role.name,
-            description: role.description || '',
-            mode: 'manual', // Default to manual for editing
-            magicDescription: '',
-            permissions: typeof role.permissions === 'string'
-                ? JSON.parse(role.permissions)
-                : role.permissions
-        });
-        setIsModalOpen(true);
-    };
-
-    const togglePermission = (resource, action) => {
-        setFormData(prev => {
-            const current = prev.permissions[resource] || [];
-            const updated = current.includes(action)
-                ? current.filter(a => a !== action)
-                : [...current, action];
 
             return {
                 ...prev,
-                permissions: { ...prev.permissions, [resource]: updated }
+                permissions: {
+                    ...prev.permissions,
+                    [resource]: newPerms
+                }
             };
         });
     };
 
-    if (loading) {
-        return (
-            <div className="p-8 text-center">
-                <Loader className="w-8 h-8 animate-spin mx-auto text-brand-purple" />
-                <p className="mt-2 text-gray-600">Carregando perfis...</p>
-            </div>
-        );
-    }
+    const isBoxChecked = (resource, columnKey) => {
+        if (!selectedRole) return false;
+        const actionsInColumn = COLUMNS.find(c => c.key === columnKey).actionMatch;
+        const currentPerms = selectedRole.permissions[resource] || [];
+        // Checked if at least one relevant action is present
+        return actionsInColumn.some(a => currentPerms.includes(a));
+    };
+
+    const isBoxDisabled = (resource, columnKey) => {
+        // Disabled if this resource has NO actions that map to this column
+        const actionsInColumn = COLUMNS.find(c => c.key === columnKey).actionMatch;
+        const validActionsForResource = AVAILABLE_ACTIONS[resource] || [];
+        const hasActions = actionsInColumn.some(a => validActionsForResource.includes(a));
+        return !hasActions;
+    };
+
+    const handleSave = async () => {
+        if (!selectedRole) return;
+        setSaving(true);
+        try {
+            const token = localStorage.getItem('token');
+            const url = `${API_URL} /api/roles / ${selectedRole.id} `;
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token} `
+                },
+                body: JSON.stringify({
+                    permissions: selectedRole.permissions
+                    // We don't update name/desc here based on the screenshot, but could add inputs
+                })
+            });
+
+            if (response.ok) {
+                alert('Permissões atualizadas com sucesso!');
+                fetchRoles();
+            } else {
+                alert('Erro ao salvar.');
+            }
+        } catch (error) {
+            console.error('Error saving:', error);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCreateRole = async () => {
+        const name = prompt("Nome do novo papel:");
+        if (!name) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL} /api/roles`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token} `
+                },
+                body: JSON.stringify({
+                    name,
+                    description: 'Novo papel personalizado',
+                    permissions: {}
+                })
+            });
+            if (response.ok) fetchRoles();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleDeleteRole = async () => {
+        if (!selectedRole || selectedRole.isSystem) return;
+        if (!confirm(`Excluir o papel "${selectedRole.name}" ? `)) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            await fetch(`${API_URL} /api/roles / ${selectedRole.id} `, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token} ` }
+            });
+            setSelectedRole(null);
+            fetchRoles();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    if (loading && roles.length === 0) return <div className="p-8"><Loader className="animate-spin" /></div>;
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            {/* Header */}
+            <div className="bg-white border-b border-gray-200 px-8 py-5 flex items-center gap-3 shadow-sm sticky top-0 z-10">
+                <Shield className="w-6 h-6 text-brand-purple" />
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                        <Shield className="w-8 h-8 text-brand-purple" />
-                        Gestão de Perfis
-                    </h1>
-                    <p className="text-gray-600 mt-2">Crie e gerencie perfis de acesso personalizados para sua organização.</p>
+                    <h1 className="text-xl font-bold text-gray-900">Gestão de Papéis e Permissões</h1>
+                    <p className="text-xs text-gray-500">Defina o que cada nível de acesso pode fazer na plataforma.</p>
                 </div>
-                <button
-                    onClick={() => { resetForm(); setIsModalOpen(true); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/90 transition-colors"
-                >
-                    <Plus className="w-5 h-5" />
-                    Novo Perfil
-                </button>
             </div>
 
-            {/* Roles Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {roles.map((role) => (
-                    <div
-                        key={role.id}
-                        className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
-                    >
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-2 bg-brand-purple/10 rounded-lg">
-                                <Shield className="w-6 h-6 text-brand-purple" />
-                            </div>
-                            {!role.isSystem && (
-                                <div className="flex gap-2">
-                                    <button onClick={() => openEdit(role)} className="p-1 text-gray-400 hover:text-brand-purple">
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => handleDelete(role.id)} className="p-1 text-gray-400 hover:text-red-500">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            )}
-                            {role.isSystem && (
-                                <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full font-medium">Sistema</span>
-                            )}
+            <div className="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full p-6 gap-6">
+
+                {/* Sidebar: Role List */}
+                <div className="w-64 flex-shrink-0 flex flex-col gap-4">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full max-h-[calc(100vh-140px)]">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                            <h2 className="font-bold text-gray-700 text-sm">Papéis Disponíveis</h2>
                         </div>
-
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">{role.name}</h3>
-                        <p className="text-gray-600 text-sm mb-4 min-h-[40px]">{role.description}</p>
-
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <div className="flex -space-x-2">
-                                <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs">
-                                    {role._count?.users || 0}
-                                </div>
-                            </div>
-                            <span>usuários ativos</span>
+                        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                            {roles.map(role => (
+                                <button
+                                    key={role.id}
+                                    onClick={() => selectRole(role)}
+                                    className={`w - full text - left p - 3 rounded - lg text - sm transition - all flex items - center justify - between group ${selectedRole?.id === role.id
+                                            ? 'bg-brand-purple/10 text-brand-purple font-medium border border-brand-purple/20'
+                                            : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                                        } `}
+                                >
+                                    <div>
+                                        <div className="font-semibold">{role.name}</div>
+                                        <div className="text-[10px] opacity-70 truncate max-w-[140px]">{role.description}</div>
+                                    </div>
+                                    {selectedRole?.id === role.id && <ChevronRight className="w-4 h-4" />}
+                                </button>
+                            ))}
                         </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Create/Edit Modal - NO FRAMER MOTION */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                            <h2 className="text-2xl font-bold text-gray-900">
-                                {editingRole ? 'Editar Perfil' : 'Novo Perfil'}
-                            </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                <X className="w-6 h-6" />
+                        <div className="p-3 border-t border-gray-100">
+                            <button
+                                onClick={handleCreateRole}
+                                className="w-full py-2 flex items-center justify-center gap-2 text-brand-purple text-sm font-bold hover:bg-brand-purple/5 rounded-lg transition-colors"
+                            >
+                                <Plus className="w-4 h-4" /> Criar Novo Papel
                             </button>
                         </div>
+                    </div>
+                </div>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                            {/* Basic Info */}
-                            <div className="grid grid-cols-1 gap-4">
+                {/* Main Content: Matrix */}
+                <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-full max-h-[calc(100vh-140px)]">
+                    {selectedRole ? (
+                        <>
+                            {/* Role Header */}
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-start">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Perfil</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple outline-none"
-                                        placeholder="Ex: Fotógrafo Voluntário"
-                                    />
+                                    <h2 className="text-2xl font-bold text-gray-900 mb-1">{selectedRole.name}</h2>
+                                    <p className="text-gray-500 text-sm">{selectedRole.description}</p>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                                    <input
-                                        type="text"
-                                        value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple outline-none"
-                                        placeholder="Breve descrição das responsabilidades"
-                                    />
+                                <div className="flex gap-2">
+                                    {!selectedRole.isSystem && (
+                                        <button
+                                            onClick={handleDeleteRole}
+                                            className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
+                                        >
+                                            <Trash2 className="w-4 h-4" /> Excluir
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={saving}
+                                        className="px-6 py-2 bg-brand-purple text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                                    >
+                                        {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                        Salvar Alterações
+                                    </button>
                                 </div>
                             </div>
 
-                            {/* Mode Switcher */}
-                            <div className="bg-gray-50 p-1 rounded-lg flex gap-1">
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, mode: 'magic' })}
-                                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.mode === 'magic'
-                                        ? 'bg-white text-brand-purple shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                >
-                                    <Sparkles className="w-4 h-4" />
-                                    Criação Mágica (IA)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, mode: 'manual' })}
-                                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${formData.mode === 'manual'
-                                        ? 'bg-white text-brand-purple shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                    Configuração Manual
-                                </button>
-                            </div>
-
-                            {/* Magic Mode */}
-                            {formData.mode === 'magic' && (
-                                <div className="space-y-4">
-                                    <div className="bg-brand-purple/5 border border-brand-purple/10 rounded-xl p-4">
-                                        <label className="block text-sm font-medium text-brand-purple mb-2">
-                                            Descreva o que este perfil deve fazer
-                                        </label>
-                                        <textarea
-                                            value={formData.magicDescription}
-                                            onChange={e => setFormData({ ...formData, magicDescription: e.target.value })}
-                                            className="w-full px-4 py-3 border border-brand-purple/20 rounded-lg focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple outline-none min-h-[100px] bg-white"
-                                            placeholder="Ex: Quero um perfil para estagiários que possam criar rascunhos de memórias e ver o conteúdo publicado, mas sem poder apagar nada ou ver configurações."
-                                        />
-                                        <div className="flex justify-end mt-2">
-                                            <button
-                                                type="button"
-                                                onClick={handleGeneratePermissions}
-                                                disabled={!formData.magicDescription || aiLoading}
-                                                className="flex items-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/90 disabled:opacity-50 transition-colors text-sm"
-                                            >
-                                                {aiLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                                Gerar Permissões
-                                            </button>
-                                        </div>
-                                        {aiError && (
-                                            <div className="mt-2 text-red-500 text-sm flex items-center gap-1">
-                                                <AlertCircle className="w-4 h-4" />
-                                                {aiError}
-                                            </div>
-                                        )}
-                                    </div>
+                            {/* System Role Warning */}
+                            {selectedRole.isSystem && (
+                                <div className="mx-6 mt-6 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-3 text-sm text-blue-700">
+                                    <Lock className="w-4 h-4 flex-shrink-0" />
+                                    Este é um papel de sistema. Você pode editar as permissões, mas tenha cuidado ao remover acessos críticos.
                                 </div>
                             )}
 
-                            {/* Permissions Preview / Manual Edit */}
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-medium text-gray-700">Permissões de Acesso</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {RESOURCES.map(resource => (
-                                        <div key={resource} className="border border-gray-200 rounded-lg p-4">
-                                            <h4 className="font-medium text-gray-900 capitalize mb-3 border-b border-gray-100 pb-2">
-                                                {resource === 'memories' ? 'Memórias' :
-                                                    resource === 'users' ? 'Usuários' :
-                                                        resource === 'settings' ? 'Configurações' : 'Analytics'}
-                                            </h4>
-                                            <div className="space-y-2">
-                                                {ACTIONS[resource].map(action => (
-                                                    <label key={action} className="flex items-center gap-2 cursor-pointer group">
-                                                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.permissions[resource]?.includes(action)
-                                                            ? 'bg-brand-purple border-brand-purple'
-                                                            : 'border-gray-300 group-hover:border-brand-purple'
-                                                            }`}>
-                                                            {formData.permissions[resource]?.includes(action) && (
-                                                                <Check className="w-3 h-3 text-white" />
-                                                            )}
-                                                        </div>
-                                                        <input
-                                                            type="checkbox"
-                                                            className="hidden"
-                                                            checked={formData.permissions[resource]?.includes(action) || false}
-                                                            onChange={() => togglePermission(resource, action)}
-                                                        />
-                                                        <span className="text-sm text-gray-600 capitalize">
-                                                            {action === 'create_draft' ? 'Criar Rascunho' : action}
-                                                        </span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            {/* Permissions Table */}
+                            <div className="p-6 overflow-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-gray-200">
+                                            <th className="text-left py-4 font-bold text-gray-900 w-1/3">Recurso / Módulo</th>
+                                            {COLUMNS.map(col => (
+                                                <th key={col.key} className="text-center py-4 font-bold text-gray-700">{col.label}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {RESOURCES.map(resource => (
+                                            <tr key={resource} className="hover:bg-gray-50 transition-colors">
+                                                <td className="py-5 pr-4">
+                                                    <div className="font-bold text-gray-800">{RESOURCE_CONFIG[resource].label}</div>
+                                                    <div className="text-xs text-gray-500 mt-1">{RESOURCE_CONFIG[resource].description}</div>
+                                                </td>
+                                                {COLUMNS.map(col => {
+                                                    const disabled = isBoxDisabled(resource, col.key);
+                                                    const checked = isBoxChecked(resource, col.key);
 
-                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex items-center gap-2 px-6 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/90 transition-colors"
-                                >
-                                    <Save className="w-4 h-4" />
-                                    Salvar Perfil
-                                </button>
+                                                    return (
+                                                        <td key={col.key} className="text-center py-5">
+                                                            <div className="flex justify-center">
+                                                                <button
+                                                                    onClick={() => !disabled && handlePermissionChange(resource, col.key)}
+                                                                    disabled={disabled}
+                                                                    className={`
+w - 6 h - 6 rounded border transition - all flex items - center justify - center
+                                                                        ${disabled
+                                                                            ? 'bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                                                                            : checked
+                                                                                ? 'bg-brand-purple border-brand-purple shadow-sm scale-110'
+                                                                                : 'items-center border-gray-300 hover:border-brand-purple cursor-pointer'
+                                                                        }
+`}
+                                                                >
+                                                                    {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                        </form>
-                    </div>
+                        </>
+                    ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+                            <LayoutGrid className="w-16 h-16 mb-4 opacity-20" />
+                            <p>Selecione um papel para editar suas permissões</p>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };
 
 export default RoleManagement;
+

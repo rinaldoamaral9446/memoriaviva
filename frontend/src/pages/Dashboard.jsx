@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import CuratorWidget from '../components/CuratorWidget';
+import InstallPrompt from '../components/InstallPrompt';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -32,6 +33,7 @@ const Dashboard = () => {
                     <p className="text-gray-500 italic">Nenhuma atividade recente.</p>
                 </div>
             </div>
+            <InstallPrompt />
         </div>
     );
 };

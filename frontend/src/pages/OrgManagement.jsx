@@ -1,18 +1,35 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Search, Filter, MoreVertical, Shield, Trash2 } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, MoreVertical, Shield, Trash2, School } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { API_URL } from '../config/api';
 
 const OrgManagement = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [units, setUnits] = useState([]); // [NEW] Units state
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user' });
+    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user', schoolUnitId: '' }); // [NEW] Added schoolUnitId
 
     useEffect(() => {
         fetchUsers();
+        fetchUnits(); // [NEW] Fetch units
     }, []);
+
+    const fetchUnits = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/units`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setUnits(Array.isArray(data) ? data : []);
+            }
+        } catch (error) {
+            console.error('Error fetching units:', error);
+        }
+    };
 
     const fetchUsers = async () => {
         try {
@@ -33,18 +50,23 @@ const OrgManagement = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
+            // Clean up empty unit ID
+            const payload = { ...newUser };
+            if (!payload.schoolUnitId) delete payload.schoolUnitId;
+            else payload.schoolUnitId = parseInt(payload.schoolUnitId);
+
             const response = await fetch(`${API_URL}/api/users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(newUser)
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
                 setShowAddModal(false);
-                setNewUser({ name: '', email: '', password: '', role: 'user' });
+                setNewUser({ name: '', email: '', password: '', role: 'user', schoolUnitId: '' });
                 fetchUsers();
                 alert('Usuário criado com sucesso!');
             } else {
@@ -106,6 +128,13 @@ const OrgManagement = () => {
                     </div>
                     <div className="flex gap-3">
                         <Link
+                            to="/admin/units"
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            <School className="w-5 h-5" />
+                            Gerenciar Unidades
+                        </Link>
+                        <Link
                             to="/admin/roles"
                             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                         >
@@ -128,6 +157,7 @@ const OrgManagement = () => {
                             <tr>
                                 <th className="p-4 font-semibold text-gray-600">Nome</th>
                                 <th className="p-4 font-semibold text-gray-600">Email</th>
+                                <th className="p-4 font-semibold text-gray-600">Unidade</th>
                                 <th className="p-4 font-semibold text-gray-600">Cargo</th>
                                 <th className="p-4 font-semibold text-gray-600">Memórias</th>
                                 <th className="p-4 font-semibold text-gray-600">Ações</th>
@@ -138,6 +168,18 @@ const OrgManagement = () => {
                                 <tr key={user.id} className="hover:bg-gray-50">
                                     <td className="p-4 font-medium text-gray-900">{user.name}</td>
                                     <td className="p-4 text-gray-600">{user.email}</td>
+                                    <td className="p-4 text-gray-600">
+                                        <div className="flex items-center gap-2">
+                                            {user.schoolUnit ? (
+                                                <>
+                                                    <School className="w-4 h-4 text-gray-400" />
+                                                    <span className="text-sm">{user.schoolUnit.name}</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-xs text-gray-400 italic">Sem unidade</span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td className="p-4">
                                         <select
                                             value={user.role}
@@ -206,6 +248,19 @@ px - 2 py - 1 rounded - full text - xs font - semibold border - 0 cursor - point
                                         value={newUser.password}
                                         onChange={e => setNewUser({ ...newUser, password: e.target.value })}
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Unidade Escolar</label>
+                                    <select
+                                        className="w-full border rounded-lg p-2"
+                                        value={newUser.schoolUnitId}
+                                        onChange={e => setNewUser({ ...newUser, schoolUnitId: e.target.value })}
+                                    >
+                                        <option value="">Selecione uma unidade...</option>
+                                        {units.map(unit => (
+                                            <option key={unit.id} value={unit.id}>{unit.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
