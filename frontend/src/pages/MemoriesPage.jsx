@@ -3,10 +3,11 @@ import MemoryCard from '../components/MemoryCard';
 import AIMemoryCreator from '../components/AIMemoryCreator';
 import TimelineView from '../components/TimelineView';
 import EditMemoryModal from '../components/EditMemoryModal';
+import MemoryViewModal from '../components/MemoryViewModal';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import SearchBar from '../components/SearchBar';
 import { API_ENDPOINTS } from '../config/api';
-import { LayoutGrid, List, Loader2, Edit2, Trash2 } from 'lucide-react';
+import { LayoutGrid, List, Loader2, Edit2, Trash2, Eye } from 'lucide-react';
 
 const MemoriesPage = () => {
     const [memories, setMemories] = useState([]);
@@ -15,6 +16,7 @@ const MemoriesPage = () => {
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'timeline'
 
     // Modals state
+    const [viewingMemory, setViewingMemory] = useState(null);
     const [editingMemory, setEditingMemory] = useState(null);
     const [deletingMemory, setDeletingMemory] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -150,19 +152,30 @@ const MemoriesPage = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {filteredMemories.map(memory => (
                                         <div key={memory.id} className="relative group">
-                                            <MemoryCard memory={memory} />
+                                            {/* Clickable Card Trigger */}
+                                            <div onClick={() => setViewingMemory(memory)} className="cursor-pointer h-full">
+                                                <MemoryCard memory={memory} />
+                                            </div>
+
                                             {/* Action Buttons */}
-                                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                                 <button
-                                                    onClick={() => setEditingMemory(memory)}
-                                                    className="p-2 bg-white hover:bg-blue-50 text-blue-600 rounded-lg shadow-md hover:shadow-lg transition-all"
+                                                    onClick={(e) => { e.stopPropagation(); setViewingMemory(memory); }}
+                                                    className="p-2 bg-white/90 hover:bg-white text-brand-purple rounded-lg shadow-md hover:shadow-lg transition-all backdrop-blur-sm"
+                                                    title="Ver Detalhes"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setEditingMemory(memory); }}
+                                                    className="p-2 bg-white/90 hover:bg-white text-blue-600 rounded-lg shadow-md hover:shadow-lg transition-all backdrop-blur-sm"
                                                     title="Editar"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => setDeletingMemory(memory)}
-                                                    className="p-2 bg-white hover:bg-red-50 text-red-600 rounded-lg shadow-md hover:shadow-lg transition-all"
+                                                    onClick={(e) => { e.stopPropagation(); setDeletingMemory(memory); }}
+                                                    className="p-2 bg-white/90 hover:bg-white text-red-600 rounded-lg shadow-md hover:shadow-lg transition-all backdrop-blur-sm"
                                                     title="Deletar"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -172,7 +185,7 @@ const MemoriesPage = () => {
                                     ))}
                                 </div>
                             ) : (
-                                <TimelineView memories={filteredMemories} />
+                                <TimelineView memories={filteredMemories} onView={setViewingMemory} />
                             )}
                         </>
                     )}
@@ -180,6 +193,11 @@ const MemoriesPage = () => {
             )}
 
             {/* Modals */}
+            <MemoryViewModal
+                memory={viewingMemory}
+                isOpen={!!viewingMemory}
+                onClose={() => setViewingMemory(null)}
+            />
             <EditMemoryModal
                 memory={editingMemory}
                 isOpen={!!editingMemory}

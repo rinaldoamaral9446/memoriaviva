@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, Tag } from 'lucide-react';
 
-const TimelineView = ({ memories }) => {
+const TimelineView = ({ memories, onView }) => {
     // Sort memories by date (newest first)
     const sortedMemories = [...memories].sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -24,7 +24,10 @@ const TimelineView = ({ memories }) => {
 
                     {/* Content Card */}
                     <div className={`w-full md:w-5/12 ml-16 md:ml-0 ${index % 2 === 0 ? 'md:pl-12' : 'md:pr-12 text-right'}`}>
-                        <div className="glass p-6 rounded-2xl hover:shadow-xl transition-all duration-300 group border border-white/40">
+                        <div
+                            onClick={() => onView && onView(memory)}
+                            className="glass p-6 rounded-2xl hover:shadow-xl transition-all duration-300 group border border-white/40 cursor-pointer"
+                        >
                             <div className={`flex items-center gap-2 text-sm text-brand-purple font-bold mb-3 ${index % 2 === 0 ? '' : 'md:justify-end'}`}>
                                 <Calendar className="w-4 h-4" />
                                 <span className="font-serif">{new Date(memory.date).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
