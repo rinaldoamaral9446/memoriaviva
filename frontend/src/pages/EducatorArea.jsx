@@ -166,7 +166,7 @@ const EducatorArea = () => {
                         <span className="text-xs font-bold uppercase tracking-wider">Estúdio de Criação</span>
                     </div>
                     <h2 className="text-2xl font-serif font-bold text-gray-900 leading-tight">
-                        Configure sua Aula
+                        <span className="notranslate">Configure sua Aula</span>
                     </h2>
                 </div>
 
@@ -181,7 +181,7 @@ const EducatorArea = () => {
                             <div className="relative group">
                                 <label className="absolute -top-2 left-2 px-1 bg-white text-[10px] font-bold text-brand-purple uppercase">Ano/Série</label>
                                 <select
-                                    className="w-full p-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 focus:border-brand-purple rounded-xl outline-none font-medium text-gray-700 transition-all appearance-none"
+                                    className="w-full p-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 focus:border-brand-purple rounded-xl outline-none font-medium text-gray-700 transition-all appearance-none notranslate"
                                     value={config.gradeLevel}
                                     onChange={e => setConfig({ ...config, gradeLevel: e.target.value })}
                                 >
@@ -200,7 +200,7 @@ const EducatorArea = () => {
                             <div className="relative group">
                                 <label className="absolute -top-2 left-2 px-1 bg-white text-[10px] font-bold text-brand-purple uppercase">Disciplina</label>
                                 <select
-                                    className="w-full p-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 focus:border-brand-purple rounded-xl outline-none font-medium text-gray-700 transition-all appearance-none"
+                                    className="w-full p-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 focus:border-brand-purple rounded-xl outline-none font-medium text-gray-700 transition-all appearance-none notranslate"
                                     value={config.subject}
                                     onChange={e => setConfig({ ...config, subject: e.target.value })}
                                 >
@@ -271,9 +271,9 @@ const EducatorArea = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className={`text-sm font-bold truncate ${selectedMemories.includes(memory.id) ? 'text-brand-purple' : 'text-gray-700'}`}>
-                                                    {memory.title}
+                                                    <span>{memory.title}</span>
                                                 </h4>
-                                                <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{memory.description}</p>
+                                                <p className="text-xs text-gray-500 line-clamp-2 mt-0.5"><span>{memory.description}</span></p>
                                             </div>
                                             {selectedMemories.includes(memory.id) && (
                                                 <div className="absolute top-2 right-2 text-brand-purple bg-white rounded-full">
@@ -375,7 +375,7 @@ const EducatorArea = () => {
                                     {lessonPlan.objectives?.map((obj, i) => (
                                         <li key={i} className="flex items-start gap-2 text-gray-700 bg-gray-50 p-3 rounded-lg text-sm">
                                             <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                                            {obj}
+                                            <span>{obj}</span>
                                         </li>
                                     ))}
                                 </ul>
