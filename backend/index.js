@@ -32,37 +32,32 @@ app.use(express.json());
 
 // Routes
 // Safe Route Loading Helper
-const failedRoutes = [];
 
-// Safe Route Loading Helper
-const safeUse = (path, routePath) => {
-  try {
-    app.use(path, require(routePath));
-  } catch (error) {
-    console.error(`⚠️ Failed to load route: ${path}`, error.message);
-    failedRoutes.push({ path, error: error.message });
-  }
+// Helper to log errors (but Require must be static)
+const logFailure = (path, error) => {
+  console.error(`⚠️ Failed to load route: ${path}`, error.message);
+  failedRoutes.push({ path, error: error.message });
 };
 
-// Routes
-safeUse('/api/auth', './routes/authRoutes');
-safeUse('/api/users', './routes/userRoutes');
-safeUse('/api/memories', './routes/memoryRoutes');
-safeUse('/api/ai', './routes/aiRoutes');
-safeUse('/api/organizations', './routes/organizationRoutes');
-safeUse('/api/upload', './routes/uploadRoutes');
-safeUse('/api/analytics', './routes/analyticsRoutes');
-safeUse('/api/roles', './routes/roleRoutes');
-safeUse('/api/admin', './routes/adminRoutes');
-safeUse('/api/events', './routes/eventRoutes');
-safeUse('/api/expenses', './routes/expenseRoutes');
-safeUse('/api/social', './routes/socialRoutes');
-safeUse('/api/audit', './routes/auditRoutes');
-safeUse('/api/settings', './routes/settingsRoutes');
-safeUse('/api/agents', './routes/agentRoutes');
-safeUse('/api/pedagogical', './routes/pedagogicalRoutes');
-safeUse('/api/system', './routes/systemRoutes');
-safeUse('/api/units', './routes/unitRoutes');
+// Routes (Explicit Try-Catch for Bundler Detection)
+try { app.use('/api/auth', require('./routes/authRoutes')); } catch (e) { logFailure('/api/auth', e); }
+try { app.use('/api/users', require('./routes/userRoutes')); } catch (e) { logFailure('/api/users', e); }
+try { app.use('/api/memories', require('./routes/memoryRoutes')); } catch (e) { logFailure('/api/memories', e); }
+try { app.use('/api/ai', require('./routes/aiRoutes')); } catch (e) { logFailure('/api/ai', e); }
+try { app.use('/api/organizations', require('./routes/organizationRoutes')); } catch (e) { logFailure('/api/organizations', e); }
+try { app.use('/api/upload', require('./routes/uploadRoutes')); } catch (e) { logFailure('/api/upload', e); }
+try { app.use('/api/analytics', require('./routes/analyticsRoutes')); } catch (e) { logFailure('/api/analytics', e); }
+try { app.use('/api/roles', require('./routes/roleRoutes')); } catch (e) { logFailure('/api/roles', e); }
+try { app.use('/api/admin', require('./routes/adminRoutes')); } catch (e) { logFailure('/api/admin', e); }
+try { app.use('/api/events', require('./routes/eventRoutes')); } catch (e) { logFailure('/api/events', e); }
+try { app.use('/api/expenses', require('./routes/expenseRoutes')); } catch (e) { logFailure('/api/expenses', e); }
+try { app.use('/api/social', require('./routes/socialRoutes')); } catch (e) { logFailure('/api/social', e); }
+try { app.use('/api/audit', require('./routes/auditRoutes')); } catch (e) { logFailure('/api/audit', e); }
+try { app.use('/api/settings', require('./routes/settingsRoutes')); } catch (e) { logFailure('/api/settings', e); }
+try { app.use('/api/agents', require('./routes/agentRoutes')); } catch (e) { logFailure('/api/agents', e); }
+try { app.use('/api/pedagogical', require('./routes/pedagogicalRoutes')); } catch (e) { logFailure('/api/pedagogical', e); }
+try { app.use('/api/system', require('./routes/systemRoutes')); } catch (e) { logFailure('/api/system', e); }
+try { app.use('/api/units', require('./routes/unitRoutes')); } catch (e) { logFailure('/api/units', e); }
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
