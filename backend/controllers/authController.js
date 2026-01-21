@@ -45,20 +45,20 @@ exports.register = async (req, res) => {
                 password: hashedPassword,
                 name,
                 organizationId: orgId || 1, // Default to Demo org if nothing selected
-            },
-            include: {
-                organization: {
-                    select: {
-                        id: true,
-                        name: true,
-                        slug: true,
-                        primaryColor: true,
-                        secondaryColor: true,
-                        logo: true
+                role: req.body.organizationName ? 'admin' : 'user', // Grant Admin role if creating a new Organization
+                include: {
+                    organization: {
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                            primaryColor: true,
+                            secondaryColor: true,
+                            logo: true
+                        }
                     }
                 }
-            }
-        });
+            });
 
         const token = jwt.sign({
             userId: user.id,

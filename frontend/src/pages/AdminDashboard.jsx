@@ -510,6 +510,15 @@ const OrganizationCard = ({ org, onDelete, onConfig }) => (
                     {org.isActive ? 'Ativo' : 'Inativo'}
                 </span>
 
+                {/* [NEW] Manage Team Button */}
+                <Link
+                    to={`/admin/team?orgId=${org.id}`}
+                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Gerenciar Equipe"
+                >
+                    <Users className="w-4 h-4" />
+                </Link>
+
                 {/* [NEW] Config Button */}
                 <button
                     onClick={onConfig}

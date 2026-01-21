@@ -7,18 +7,24 @@ import { API_URL } from '../config/api';
 const OrgManagement = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [units, setUnits] = useState([]); // [NEW] Units state
+    const [units, setUnits] = useState([]);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user', schoolUnitId: '' }); // [NEW] Added schoolUnitId
+    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user', schoolUnitId: '' });
+
+    // [NEW] Get orgId from URL for Super Admin
+    const queryParams = new URLSearchParams(location.search);
+    const targetOrgId = queryParams.get('orgId');
 
     useEffect(() => {
         fetchUsers();
-        fetchUnits(); // [NEW] Fetch units
-    }, []);
+        fetchUnits();
+    }, [targetOrgId]);
 
     const fetchUnits = async () => {
         try {
             const token = localStorage.getItem('token');
+            // If targetOrgId exists, we might want to fetch units for THAT org too, but backend needs update. 
+            // For now assuming units are global or irrelevant for simpler user management.
             const response = await fetch(`${API_URL}/api/units`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -34,11 +40,15 @@ const OrgManagement = () => {
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/users/organization`, {
+            const url = targetOrgId
+                ? `${API_URL}/api/users/organization?organizationId=${targetOrgId}`
+                : `${API_URL}/api/users/organization`;
+
+            const response = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-            setUsers(data);
+            setUsers(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error fetching users:', error);
         } finally {
@@ -50,10 +60,15 @@ const OrgManagement = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            // Clean up empty unit ID
             const payload = { ...newUser };
+
             if (!payload.schoolUnitId) delete payload.schoolUnitId;
             else payload.schoolUnitId = parseInt(payload.schoolUnitId);
+
+            // [NEW] Inject targetOrgId if present
+            if (targetOrgId) {
+                payload.organizationId = parseInt(targetOrgId);
+            }
 
             const response = await fetch(`${API_URL}/api/users`, {
                 method: 'POST',

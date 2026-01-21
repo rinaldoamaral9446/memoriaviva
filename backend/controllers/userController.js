@@ -47,8 +47,16 @@ exports.getProfile = async (req, res) => {
 // Get all users for the organization (Admin only)
 exports.getOrganizationUsers = async (req, res) => {
     try {
+        const { organizationId: queryOrgId } = req.query;
+        let targetOrgId = req.user.organizationId;
+
+        // Super Admin (Org ID 1) can query any organization
+        if (req.user.organizationId === 1 && queryOrgId) {
+            targetOrgId = parseInt(queryOrgId);
+        }
+
         const users = await prisma.user.findMany({
-            where: { organizationId: req.user.organizationId },
+            where: { organizationId: targetOrgId },
             select: {
                 id: true,
                 name: true,
@@ -76,8 +84,13 @@ exports.getOrganizationUsers = async (req, res) => {
 // Create a new user (Admin only)
 exports.createUser = async (req, res) => {
     try {
-        const { name, email, password, role, schoolUnitId } = req.body;
-        const organizationId = req.user.organizationId;
+        const { name, email, password, role, schoolUnitId, organizationId: targetOrgId } = req.body;
+        let organizationId = req.user.organizationId;
+
+        // Super Admin Override
+        if (req.user.organizationId === 1 && targetOrgId) {
+            organizationId = parseInt(targetOrgId);
+        }
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
@@ -110,10 +123,16 @@ exports.updateUser = async (req, res) => {
         const { id } = req.params;
         const { role, schoolUnitId } = req.body;
         const organizationId = req.user.organizationId;
+        const isSuperAdmin = organizationId === 1;
 
-        // Verify user belongs to organization
+        // Verify user belongs to organization (OR allow if Super Admin)
+        const whereClause = { id: parseInt(id) };
+        if (!isSuperAdmin) {
+            whereClause.organizationId = organizationId;
+        }
+
         const user = await prisma.user.findFirst({
-            where: { id: parseInt(id), organizationId }
+            where: whereClause
         });
 
         if (!user) {
@@ -140,15 +159,21 @@ exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
         const organizationId = req.user.organizationId;
+        const isSuperAdmin = organizationId === 1;
 
         // Prevent self-deletion
         if (parseInt(id) === req.user.userId) {
             return res.status(400).json({ message: 'Cannot delete yourself' });
         }
 
-        // Verify user belongs to organization
+        // Verify user belongs to organization (OR allow if Super Admin)
+        const whereClause = { id: parseInt(id) };
+        if (!isSuperAdmin) {
+            whereClause.organizationId = organizationId;
+        }
+
         const user = await prisma.user.findFirst({
-            where: { id: parseInt(id), organizationId }
+            where: whereClause
         });
 
         if (!user) {
