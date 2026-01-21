@@ -182,8 +182,12 @@ const MainLayout = () => {
             {/* Impersonation Banner */}
             {
                 sessionStorage.getItem('superAdminToken') && (
-                    <div className="bg-red-600 text-white p-2 text-center text-sm font-bold flex items-center justify-center gap-4">
-                        <span>⚠️ Você está acessando como {user?.name} ({organization?.name})</span>
+                    <div className="bg-red-600 text-white p-2 text-center text-sm font-bold flex items-center justify-center gap-4 notranslate">
+                        <span>
+                            <span>⚠️ Você está acessando como </span>
+                            <span>{user?.name}</span>
+                            <span> ({organization?.name})</span>
+                        </span>
                         <button
                             onClick={() => {
                                 localStorage.setItem('token', sessionStorage.getItem('superAdminToken'));
@@ -192,7 +196,7 @@ const MainLayout = () => {
                             }}
                             className="bg-white text-red-600 px-3 py-1 rounded-full text-xs hover:bg-gray-100"
                         >
-                            Sair do Modo de Acesso
+                            <span>Sair do Modo de Acesso</span>
                         </button>
                     </div>
                 )
@@ -207,7 +211,9 @@ const MainLayout = () => {
             <footer className="glass border-t border-white/30 mt-auto">
                 <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                     <p className="text-center text-gray-500 text-sm font-medium">
-                        &copy; {new Date().getFullYear()} {branding?.name || 'Memória Cultural Viva'}. Preservando histórias com Inteligência.
+                        <span>&copy; {new Date().getFullYear()} </span>
+                        <span>{branding?.name || 'Memória Cultural Viva'}</span>
+                        <span>. Preservando histórias com Inteligência.</span>
                     </p>
                 </div>
             </footer>
