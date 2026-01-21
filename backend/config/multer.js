@@ -17,11 +17,9 @@ const storage = new CloudinaryStorage({
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         const fs = require('fs');
-        const path = require('path');
-        const tempDir = path.join(__dirname, '..', 'temp');
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
-        }
+        const os = require('os');
+        const tempDir = os.tmpdir();
+        // /tmp always exists, no need to mkdir usually, but safe to leave if checking specific subfolder
         cb(null, tempDir);
     },
     filename: (req, file, cb) => {

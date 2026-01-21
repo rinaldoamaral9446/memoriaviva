@@ -28,7 +28,7 @@ app.use(express.json());
 
 // Serve uploaded files as static
 // Serve uploaded files as static
-app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
+// app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
