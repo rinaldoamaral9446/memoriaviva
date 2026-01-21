@@ -47,7 +47,7 @@ const TimelineView = ({ memories, onView }) => {
                                 {memory.location && (
                                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-brand-gold/10 text-yellow-700 text-xs font-bold rounded-full border border-brand-gold/20">
                                         <MapPin className="w-3 h-3" />
-                                        {memory.location}
+                                        <span>{memory.location}</span>
                                     </span>
                                 )}
                                 {JSON.parse(memory.tags || '[]').map((tag, i) => (

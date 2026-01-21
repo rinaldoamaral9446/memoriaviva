@@ -26,7 +26,7 @@ const MemoryCard = ({ memory }) => {
                 {/* Date Badge */}
                 <div className="absolute top-4 right-4 z-20 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-brand-purple shadow-sm flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {new Date(memory.eventDate || memory.date).toLocaleDateString('pt-BR')}
+                    <span>{new Date(memory.eventDate || memory.date).toLocaleDateString('pt-BR')}</span>
                 </div>
             </div>
 
@@ -44,7 +44,7 @@ const MemoryCard = ({ memory }) => {
                     {memory.location && (
                         <div className="flex items-center text-xs text-gray-500 font-medium">
                             <MapPin className="w-3 h-3 mr-1 text-brand-gold" />
-                            {memory.location}
+                            <span>{memory.location}</span>
                         </div>
                     )}
 

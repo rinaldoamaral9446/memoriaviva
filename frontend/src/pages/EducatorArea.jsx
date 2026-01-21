@@ -297,16 +297,18 @@ const EducatorArea = () => {
                         className="w-full py-4 text-white rounded-xl font-bold font-sans hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl shadow-brand-purple/20 flex items-center justify-center gap-2 group relative overflow-hidden"
                     >
                         {generating ? (
-                            <><Loader className="w-5 h-5 animate-spin" /> Gerando Plano Mágico...</>
+                            <><Loader className="w-5 h-5 animate-spin" /> <span>Gerando Plano Mágico...</span></>
                         ) : (
                             <>
                                 <span className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></span>
                                 <Wand2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                                Gerar Plano de Aula ✨
+                                <span>Gerar Plano de Aula ✨</span>
                             </>
                         )}
                     </button>
-                    <p className="text-center text-[10px] text-gray-400 mt-3 font-medium uppercase tracking-widest">Powered by MemViva AI</p>
+                    <p className="text-center text-[10px] text-gray-400 mt-3 font-medium uppercase tracking-widest">
+                        <span>Powered by MemViva AI</span>
+                    </p>
                 </div>
             </aside>
 
@@ -321,13 +323,13 @@ const EducatorArea = () => {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <div className="flex items-center gap-3 mb-2">
-                                        <span className="px-3 py-1 bg-brand-purple/10 text-brand-purple font-bold text-xs rounded-full uppercase tracking-wider border border-brand-purple/20">
+                                        <span className="px-3 py-1 bg-brand-purple/10 text-brand-purple font-bold text-xs rounded-full uppercase tracking-wider border border-brand-purple/20 notranslate">
                                             {config.subject}
                                         </span>
                                         <span className="text-gray-400 text-sm font-medium">•</span>
-                                        <span className="text-gray-600 text-sm font-medium">{config.gradeLevel}</span>
+                                        <span className="text-gray-600 text-sm font-medium notranslate">{config.gradeLevel}</span>
                                     </div>
-                                    <h1 className="text-3xl font-serif font-bold text-gray-900 mb-2">{lessonPlan.title}</h1>
+                                    <h1 className="text-3xl font-serif font-bold text-gray-900 mb-2 notranslate">{lessonPlan.title}</h1>
                                 </div>
                                 <button
                                     onClick={() => window.print()}

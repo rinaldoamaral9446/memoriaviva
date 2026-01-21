@@ -25,7 +25,7 @@ const MemoryViewModal = ({ memory, isOpen, onClose }) => {
                 <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/20">
                     <h2 className="text-xl font-serif font-bold text-white flex items-center gap-2">
                         <span className="w-2 h-6 bg-brand-purple rounded-full" />
-                        {memory.title}
+                        <span>{memory.title}</span>
                     </h2>
                     <button
                         onClick={onClose}
