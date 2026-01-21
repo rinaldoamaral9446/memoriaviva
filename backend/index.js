@@ -32,6 +32,7 @@ app.use(express.json());
 
 // Routes
 // Safe Route Loading Helper
+const failedRoutes = [];
 
 // Helper to log errors (but Require must be static)
 const logFailure = (path, error) => {
