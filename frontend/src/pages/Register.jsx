@@ -24,6 +24,7 @@ const Register = () => {
 
     // Fetch organizations on mount
     React.useEffect(() => {
+        console.log('🔗 Connecting to Backend:', API_URL);
         fetchOrganizations();
     }, []);
 
@@ -142,7 +143,7 @@ const Register = () => {
                     {/* Name */}
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Nome Completo *
+                            <span>Nome Completo *</span>
                         </label>
                         <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -155,13 +156,13 @@ const Register = () => {
                                 placeholder="Seu nome"
                             />
                         </div>
-                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                        {errors.name && <p className="text-red-500 text-sm mt-1"><span>{errors.name}</span></p>}
                     </div>
 
                     {/* Email */}
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Email *
+                            <span>Email *</span>
                         </label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -174,21 +175,21 @@ const Register = () => {
                                 placeholder="seu@email.com"
                             />
                         </div>
-                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                        {errors.email && <p className="text-red-500 text-sm mt-1"><span>{errors.email}</span></p>}
                     </div>
 
                     {/* Organization */}
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <label className="block text-sm font-bold text-gray-700">
-                                Organização *
+                                <span>Organização *</span>
                             </label>
                             <button
                                 type="button"
                                 onClick={() => setIsNewOrg(!isNewOrg)}
                                 className="text-xs text-brand-purple hover:underline font-medium"
                             >
-                                {isNewOrg ? 'Selecionar existente' : 'Criar nova organização'}
+                                <span>{isNewOrg ? 'Selecionar existente' : 'Criar nova organização'}</span>
                             </button>
                         </div>
 
@@ -222,9 +223,9 @@ const Register = () => {
                         </div>
 
                         {isNewOrg ? (
-                            errors.organizationName && <p className="text-red-500 text-sm mt-1">{errors.organizationName}</p>
+                            errors.organizationName && <p className="text-red-500 text-sm mt-1"><span>{errors.organizationName}</span></p>
                         ) : (
-                            errors.organizationId && <p className="text-red-500 text-sm mt-1">{errors.organizationId}</p>
+                            errors.organizationId && <p className="text-red-500 text-sm mt-1"><span>{errors.organizationId}</span></p>
                         )}
 
                         {/* Organization Preview */}
@@ -237,17 +238,17 @@ const Register = () => {
                                 }}
                             >
                                 <p className="text-sm font-medium" style={{ color: selectedOrg.primaryColor }}>
-                                    {selectedOrg.name}
+                                    <span>{selectedOrg.name}</span>
                                 </p>
                                 <p className="text-xs text-gray-600 mt-1">
-                                    Você fará parte desta organização
+                                    <span>Você fará parte desta organização</span>
                                 </p>
                             </div>
                         )}
 
                         {isNewOrg && (
                             <div className="mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
-                                Uma nova organização será criada automaticamente para você.
+                                <span>Uma nova organização será criada automaticamente para você.</span>
                             </div>
                         )}
                     </div>
@@ -255,7 +256,7 @@ const Register = () => {
                     {/* Password */}
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Senha *
+                            <span>Senha *</span>
                         </label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -279,13 +280,13 @@ const Register = () => {
                                 )}
                             </button>
                         </div>
-                        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                        {errors.password && <p className="text-red-500 text-sm mt-1"><span>{errors.password}</span></p>}
                     </div>
 
                     {/* Confirm Password */}
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Confirmar Senha *
+                            <span>Confirmar Senha *</span>
                         </label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -298,7 +299,7 @@ const Register = () => {
                                 placeholder="Repita a senha"
                             />
                         </div>
-                        {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+                        {errors.confirmPassword && <p className="text-red-500 text-sm mt-1"><span>{errors.confirmPassword}</span></p>}
                     </div>
 
                     {/* Submit Button */}
@@ -310,12 +311,12 @@ const Register = () => {
                         {loading ? (
                             <>
                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                Criando conta...
+                                <span>Criando conta...</span>
                             </>
                         ) : (
                             <>
                                 <UserPlus className="w-5 h-5" />
-                                Criar Conta
+                                <span>Criar Conta</span>
                             </>
                         )}
                     </button>
@@ -323,9 +324,9 @@ const Register = () => {
                     {/* Login Link */}
                     <div className="text-center">
                         <p className="text-gray-600">
-                            Já tem uma conta?{' '}
+                            <span>Já tem uma conta?</span>{' '}
                             <Link to="/login" className="text-brand-purple font-bold hover:underline">
-                                Faça login
+                                <span>Faça login</span>
                             </Link>
                         </p>
                     </div>
