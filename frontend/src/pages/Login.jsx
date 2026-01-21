@@ -73,7 +73,7 @@ const Login = () => {
 
                 <div className="text-center mt-4">
                     <p className="text-gray-600">
-                        Não tem uma conta?{' '}
+                        <span>Não tem uma conta? </span>
                         <Link to="/register" className="text-brand-purple font-bold hover:underline">
                             Criar conta
                         </Link>

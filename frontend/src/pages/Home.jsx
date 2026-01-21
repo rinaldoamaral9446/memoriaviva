@@ -88,12 +88,12 @@ const Home = () => {
                                     <div className="p-6 flex-1 flex flex-col">
                                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
                                             <Calendar className="w-4 h-4" />
-                                            {new Date(memory.eventDate || memory.createdAt).toLocaleDateString()}
+                                            <span>{new Date(memory.eventDate || memory.createdAt).toLocaleDateString()}</span>
                                             {memory.location && (
                                                 <>
                                                     <span>•</span>
                                                     <MapPin className="w-4 h-4" />
-                                                    {memory.location}
+                                                    <span>{memory.location}</span>
                                                 </>
                                             )}
                                         </div>
