@@ -6,21 +6,17 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.get('/', (req, res) => {
-  res.send('Backend Memória Viva is running!');
+  res.json({
+    message: 'Backend Memória Viva is running!',
+    status: 'online',
+    failedRoutes: typeof failedRoutes !== 'undefined' ? failedRoutes : []
+  });
 });
 
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const memoryRoutes = require('./routes/memoryRoutes');
-const aiRoutes = require('./routes/aiRoutes');
-const organizationRoutes = require('./routes/organizationRoutes');
-const uploadRoutes = require('./routes/uploadRoutes');
-const analyticsRoutes = require('./routes/analyticsRoutes');
-const roleRoutes = require('./routes/roleRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const eventRoutes = require('./routes/eventRoutes');
-const auditRoutes = require('./routes/auditRoutes');
-const settingsRoutes = require('./routes/settingsRoutes');
+// Lazy Load Routes to prevent startup crash on Vercel 500
+// const authRoutes = require('./routes/authRoutes'); // Moved inline
+// const userRoutes = require('./routes/userRoutes'); // Moved inline
+// ... other routes moved inline
 
 // Middleware
 const corsOptions = {
@@ -35,24 +31,38 @@ app.use(express.json());
 // app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/memories', memoryRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/organizations', organizationRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/events', eventRoutes); // Registered event routes
-app.use('/api/expenses', require('./routes/expenseRoutes')); // Registered expense routes
-app.use('/api/social', require('./routes/socialRoutes')); // Registered social routes
-app.use('/api/audit', auditRoutes); // Registered audit routes
-app.use('/api/settings', settingsRoutes); // Registered settings routes
-app.use('/api/agents', require('./routes/agentRoutes')); // New Agent Management Routes
-app.use('/api/pedagogical', require('./routes/pedagogicalRoutes')); // [NEW] Pedagogical Routes (BNCC/PDF)
-app.use('/api/system', require('./routes/systemRoutes')); // [NEW] System Config & Audit
-app.use('/api/units', require('./routes/unitRoutes')); // [NEW] School Units Management
+// Safe Route Loading Helper
+const failedRoutes = [];
+
+// Safe Route Loading Helper
+const safeUse = (path, routePath) => {
+  try {
+    app.use(path, require(routePath));
+  } catch (error) {
+    console.error(`⚠️ Failed to load route: ${path}`, error.message);
+    failedRoutes.push({ path, error: error.message });
+  }
+};
+
+// Routes
+safeUse('/api/auth', './routes/authRoutes');
+safeUse('/api/users', './routes/userRoutes');
+safeUse('/api/memories', './routes/memoryRoutes');
+safeUse('/api/ai', './routes/aiRoutes');
+safeUse('/api/organizations', './routes/organizationRoutes');
+safeUse('/api/upload', './routes/uploadRoutes');
+safeUse('/api/analytics', './routes/analyticsRoutes');
+safeUse('/api/roles', './routes/roleRoutes');
+safeUse('/api/admin', './routes/adminRoutes');
+safeUse('/api/events', './routes/eventRoutes');
+safeUse('/api/expenses', './routes/expenseRoutes');
+safeUse('/api/social', './routes/socialRoutes');
+safeUse('/api/audit', './routes/auditRoutes');
+safeUse('/api/settings', './routes/settingsRoutes');
+safeUse('/api/agents', './routes/agentRoutes');
+safeUse('/api/pedagogical', './routes/pedagogicalRoutes');
+safeUse('/api/system', './routes/systemRoutes');
+safeUse('/api/units', './routes/unitRoutes');
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
